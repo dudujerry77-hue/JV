@@ -1,0 +1,39 @@
+{
+  "current_phase": "Phase 1 — Foundation",
+  "phase_status": "proposed",
+  "implemented_features": [],
+  "verified_features": [],
+  "blocked_features": [
+    {
+      "feature": "Foundation runtime",
+      "status": "blocked",
+      "reason": "Implementation has not started; governance initialized first"
+    }
+  ],
+  "active_tasks": [
+    {
+      "id": "GOV-INIT-001",
+      "title": "Establish Jarvis governance baseline",
+      "status": "implemented"
+    }
+  ],
+  "architecture_version": "0.1.0-governance",
+  "latest_decisions": [
+    "DEC-0001",
+    "DEC-0002",
+    "DEC-0003",
+    "DEC-0004",
+    "DEC-0005"
+  ],
+  "known_risks": [
+    "No application code exists yet",
+    "Technology stack still under investigation",
+    "Security architecture not yet implemented"
+  ],
+  "next_actions": [
+    "Review and approve governance documents",
+    "Investigate and decide initial stack choices",
+    "Begin Phase 1 implementation plan after approval"
+  ],
+  "last_verified_commit": "pending"
+}
