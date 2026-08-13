@@ -44,3 +44,25 @@ project history. For *why* architectural choices were made, see
   `roadmap.md` and `project_state.json` updated accordingly. Beginning
   Foundation implementation: package skeleton, config, observability,
   permissions, plugin loader, core service, tests.
+- Implemented the Phase 1 Foundation skeleton under `jarvis_core/`: config
+  system, structured logging, SQLite storage layer, capability-based
+  permission system (deny-by-default, audited), plugin manifest/discovery
+  with per-plugin failure isolation, and a loopback-only FastAPI core
+  service with `/health` and `/status`.
+- Wrote 20 automated tests (`pytest`) covering config loading, permission
+  grant/revoke/require/audit behavior, plugin discovery (valid/invalid/
+  missing manifests), and the core service's endpoints. All 20 pass.
+- Found and fixed a real bug during testing: `load_config()` treated an
+  unset config path as `Path(".")` (always truthy), so it tried to open
+  the current directory as a YAML file. Fixed by only constructing a
+  `Path` when a path string is actually present.
+- Ran a real end-to-end smoke test: booted the service on a real socket,
+  hit `/health` and `/status` over real HTTP, confirmed a real SQLite
+  database file was created and seeded correctly.
+- Filled in `coding_standards.md` and `testing_strategy.md`'s previously-
+  pending sections now that the stack is decided and exercised.
+- Updated `project_state.json` with implemented/verified feature lists.
+  Phase 1 remains `in_progress`, not complete -- no CI, no formal security
+  review, and no phase completion record yet (roadmap.md's completion bar
+  is: implementation + tests + integration + documentation + security
+  review + verification, and the security review has not happened).
