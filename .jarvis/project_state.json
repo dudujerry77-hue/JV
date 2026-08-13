@@ -1,0 +1,58 @@
+{
+  "project": "Jarvis",
+  "governance_version": "0.1.0",
+  "last_updated": "2026-08-13",
+  "current_phase": "Phase 1 - Foundation",
+  "phase_status": "in_progress",
+  "architecture_version": "0.1-draft",
+  "repository_state": {
+    "application_code_exists": true,
+    "technology_stack_decided": true,
+    "notes": "Phase 1 Foundation scaffolding implemented under jarvis_core/: config, observability, permissions, plugin loader, storage, core service. 20 automated tests exist and pass (pytest). Not yet CI-wired, not yet security-reviewed as a phase, no first-party plugins ship yet."
+  },
+  "implemented_features": [
+    "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic (jarvis_core/config)",
+    "Structured logging to console + rotating file (jarvis_core/observability)",
+    "SQLite storage layer with permission_grants and audit_log tables (jarvis_core/storage)",
+    "Capability-based permission system: deny-by-default store, tier classification, require() enforcement gate with audit logging (jarvis_core/permissions)",
+    "Plugin manifest schema + directory-based discovery with per-plugin failure isolation (jarvis_core/plugins)",
+    "Core HTTP service (FastAPI/Uvicorn, loopback-only) with /health and /status endpoints (jarvis_core/service)"
+  ],
+  "verified_features": [
+    "Config system: 4 automated tests passing (defaults, file override, env override, path resolution)",
+    "Permission system: 8 automated tests passing (deny-by-default, grant/revoke, full-catalog seeding, tier mapping, require() allow/deny paths, audit-log write)",
+    "Plugin discovery/registry: 6 automated tests passing (empty dir, missing dir, valid manifest, invalid manifest isolation, no-manifest dir skipped, registry register/get/list)",
+    "Core service: 2 automated tests passing (in-process /health and /status), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file"
+  ],
+  "blocked_features": [],
+  "active_tasks": [],
+  "latest_decisions": [
+    "D-0001",
+    "D-0002",
+    "D-0003",
+    "D-0004",
+    "D-0005",
+    "D-0006",
+    "D-0007",
+    "D-0008",
+    "D-0009",
+    "D-0010",
+    "D-0011",
+    "D-0012"
+  ],
+  "known_risks": [
+    "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
+    "No CI pipeline exists yet -- tests must be run manually (`pytest`) before each commit until CI is wired up.",
+    "No formal security review has been performed on this Foundation pass -- required before Phase 1 can be marked complete per roadmap.md's completion bar.",
+    "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin.",
+    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively -- not blocking for Phase 1."
+  ],
+  "next_actions": [
+    "Owner review of this Foundation pass.",
+    "Wire up CI to run pytest automatically on push.",
+    "Perform and record a security review of the permission/plugin/service layers before declaring Phase 1 complete.",
+    "Write phase_completion_records/P001-completion.md only once the full completion bar in roadmap.md is met (a partial pass, however solid, is not 'complete').",
+    "Decide what real capability Phase 1 should be exercised against next (e.g. a first trivial plugin, or moving into Phase 3 AI provider wiring)."
+  ],
+  "last_verified_commit": null
+}
