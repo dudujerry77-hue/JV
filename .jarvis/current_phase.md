@@ -1,54 +1,86 @@
 # Current Phase
 
-Phase 1 status: **`verified`** — see `phase_completion_records/P001-completion.md`
-Next phase: **pending owner decision** (see below)
+Phase: **Phase 2 — Voice**
+Status: `in_progress`
 Last updated: 2026-08-13
 
-## Phase 1 — Closed Out
+Phase 1 is closed out and `verified` — see
+`phase_completion_records/P001-completion.md`. Owner confirmed (D-0014)
+the documented roadmap order: Voice next, before the AI Brain (Phase 3).
 
-All of `roadmap.md`'s completion bar is now met: implementation, 26
-passing tests, a real end-to-end integration smoke test, documentation,
-and a security review (which found and fixed a real gap — the core
-service's host binding wasn't actually enforced as loopback-only, just
-defaulted that way; fixed in `jarvis_core/service/app.py`). CI
-(`.github/workflows/tests.yml`) now runs the suite on every push and pull
-request.
+## Phase 2 Scope (this pass)
 
-## Open Sequencing Question Before Starting the Next Phase
+Per `roadmap.md`: wake word, speech recognition, text-to-speech,
+conversation. Since there is no AI brain yet, "conversation" here means an
+**echo pipeline**: wake word detected -> record -> transcribe -> speak the
+transcript back. This proves the mechanics; Phase 3 replaces the echo with
+a real response.
 
-`roadmap.md` lists Phase 2 (Voice) before Phase 3 (Multi-AI Brain). But
-voice input/output has nothing to talk to until an AI provider exists —
-building wake-word/STT/TTS before there's a brain to route to produces
-something that listens and speaks but can't actually respond to anything
-meaningful. This was flagged to the owner in conversation but not yet
-resolved into a decision.
+Stack (D-0015): `openWakeWord` (wake word), `faster-whisper` (speech-to-
+text), `pyttsx3` over the OS voice engine (text-to-speech). All local-tier
+per D-0006 — no cloud dependency, matches the owner's GPU-less hardware.
 
-This is a real reordering of the roadmap, not a trivial call — per
-`roadmap.md`'s own note ("Reordering the roadmap is itself an
-architectural decision and must be recorded in `decisions.md`"), it needs
-an explicit decision, not an agent's silent judgment call.
+## Important: What Can and Cannot Be Verified From This Sandbox
 
-**Options, pending owner choice:**
+This governance/implementation work is happening in a remote sandbox, not
+on the owner's actual EliteBook. Two real constraints affect what "Phase 2
+verified" can honestly mean:
 
-1. Follow the documented order — build Phase 2 (Voice) next, even though
-   it won't have a brain to respond yet (it could still prove out
-   wake-word + STT + TTS mechanics in isolation, e.g. echoing back
-   transcribed text).
-2. Reorder — build Phase 3 (Multi-AI Brain) next instead, so there's
-   something to actually talk to, then add voice on top of a working
-   brain.
+- **No microphone or speaker hardware exists in this sandbox** — audio
+  capture from a real mic cannot be tested here.
+- **This sandbox's network policy blocks `huggingface.co`** (confirmed via
+  a 403 from the outbound proxy), so the pretrained model weights
+  `openWakeWord` and `faster-whisper` need on first use cannot be
+  downloaded here.
 
-## Also Still Open (deferred, not blocking either option above)
+What **was** verified for real in this sandbox: `pyttsx3` text-to-speech
+actually works end-to-end (produces a real audio file via the OS voice
+engine — `espeak-ng` here, will be SAPI5 on the owner's Windows machine).
 
-- Specific cloud AI provider(s) to wire up first for Phase 3, and a
-  monthly cost ceiling (relates to D-0008).
-- Android integration approach — needed for Phase 7.
+What is built but **only mock-tested** here, pending the owner running it
+on real hardware with real internet: wake-word detection accuracy,
+speech-to-text transcription accuracy, and real microphone capture. The
+code is written with lazy model loading and a swappable-engine design
+specifically so it's ready to exercise for real the moment it runs
+somewhere with a mic and normal internet access.
+
+Phase 2 will **not** be marked `verified` in `roadmap.md` the way Phase 1
+was, until the owner confirms the mic/model pieces work for real on their
+machine.
+
+## What's Been Built This Pass
+
+`jarvis_core/voice/`:
+- `engines.py` — Protocol interfaces for wake word / STT / TTS.
+- `tts.py` — `Pyttsx3Engine`. **Genuinely verified**: produces real audio
+  files via the OS voice engine in this sandbox (espeak-ng here, SAPI5 on
+  the owner's Windows machine).
+- `stt.py` — `FasterWhisperEngine`, lazy model loading. Wrapper logic
+  (joining segments, load-once behavior) verified via mocked tests; real
+  transcription accuracy **not** verified here.
+- `wakeword.py` — `OpenWakeWordEngine`, lazy model loading. Wrapper logic
+  (threshold detection, reset behavior) verified via mocked tests; real
+  detection accuracy **not** verified here.
+- `audio_io.py` — real mic/speaker adapter via `sounddevice`.
+  `save_wav()`'s file format is verified for real; `record_seconds()` and
+  `play_wav()` need real hardware, untested here.
+- `pipeline.py` — `EchoPipeline` (hears -> transcribes -> speaks back) and
+  `ListenLoop` (wake-word-gated state machine). Control flow verified via
+  fakes/mocks + real TTS.
+- `factory.py` — assembles the pipeline, gated by the `MICROPHONE`
+  permission (deny-by-default, as required by `permissions_model.md`).
+
+49 automated tests total, all passing. CI runs them on every push
+(`.github/workflows/tests.yml`, now also installs `espeak`/`espeak-ng`/
+`libportaudio2` so CI can genuinely exercise the TTS/audio-file tests, not
+just skip them).
 
 ## Next Action
 
-Owner picks option 1 or 2 above (or another sequencing entirely). Once
-chosen, record it in `decisions.md`, update this file and `roadmap.md`'s
-phase statuses accordingly, and begin that phase's implementation
-following the same process Phase 1 used (implementation -> tests ->
-integration -> documentation -> security review -> verification, with
-progress reported file-by-file as work happens).
+**This phase cannot be marked `verified` from here.** The owner needs to
+run it on the actual EliteBook 645 G9 — real internet lets openWakeWord
+and faster-whisper download their models, and a real microphone/speakers
+let the full wake-word -> listen -> echo loop be tested end-to-end. Once
+confirmed working, write `phase_completion_records/P002-completion.md`
+and update `roadmap.md`'s Phase 2 status to `verified`. Only after that
+should Phase 3 (Multi-AI Brain) begin.

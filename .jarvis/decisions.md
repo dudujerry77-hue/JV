@@ -264,3 +264,59 @@ consequence here (unauthenticated remote control of Jarvis) is severe
 enough to warrant a hard failure instead of a warning.
 Consequences: Covered by `tests/test_service.py`'s loopback allow/reject
 tests. Recorded in `phase_completion_records/P001-completion.md`.
+
+---
+
+### D-0014: Phase 2 (Voice) confirmed next, documented roadmap order kept
+Status: decided
+Date: 2026-08-13
+Context: `current_phase.md` flagged that `roadmap.md`'s documented order
+(Phase 2 Voice before Phase 3 Brain) might not make practical sense, since
+voice has nothing to respond with until a brain exists, and asked the
+owner to choose.
+Decision: Owner chose to keep the documented order — build Phase 2
+(Voice) next. Since there is no brain yet, Phase 2 proves out the
+wake-word/STT/TTS mechanics via a simple echo pipeline (hears something,
+transcribes it, speaks it back) rather than real conversation. Real
+conversation is wired in once Phase 3 exists.
+Alternatives considered: Reordering to build Phase 3 first — this was the
+agent's recommendation, but the owner preferred the documented sequence.
+Consequences: `current_phase.md` and `roadmap.md` updated to Phase 2 in
+progress. The echo pipeline built in this phase should be easy to point
+at a real brain once Phase 3 exists, rather than thrown away.
+
+### D-0015: Voice stack — openWakeWord, faster-whisper, pyttsx3
+Status: decided
+Date: 2026-08-13
+Context: Phase 2 needs concrete wake-word, speech-to-text, and
+text-to-speech libraries. Per D-0006, these are local-tier (free,
+always-on) capabilities that must run on the owner's GPU-less EliteBook
+645 G9.
+Decision:
+- **Wake word**: `openWakeWord` — open-source, ONNX-based, runs on CPU,
+  no cloud dependency.
+- **Speech-to-text**: `faster-whisper` (CTranslate2-based Whisper) — CPU-
+  efficient compared to the reference Whisper implementation, no cloud
+  dependency once its model is downloaded once.
+- **Text-to-speech**: `pyttsx3` over the OS-native voice engine (SAPI5 on
+  the owner's actual Windows machine; espeak-ng on Linux, used here in
+  this development sandbox to verify the wrapper for real). Zero model
+  download required, works offline immediately.
+Both `openWakeWord` and `faster-whisper` require downloading pretrained
+model weights on first use (from GitHub/Hugging Face respectively) — this
+could not be verified in the agent's sandbox, whose network policy blocks
+`huggingface.co` (confirmed via a 403 from the outbound proxy). Both
+engines are built with lazy model loading and tested here against mocked
+model layers; **real transcription/wake-word accuracy must be verified on
+the owner's actual machine**, which has normal internet access.
+Alternatives considered: Cloud STT/TTS (e.g. a paid API) — rejected for
+this tier per D-0006, these are meant to be the free/local/always-on
+pieces; Piper for TTS — a higher-quality local alternative than pyttsx3,
+worth revisiting later, but `pyttsx3` needs zero model download and
+matches "get something working first."
+Consequences: `pyproject.toml` gains `faster-whisper`, `openwakeword`,
+`pyttsx3` as dependencies. `phase_completion_records/P002-completion.md`
+(once written) must explicitly note which parts were verified in-sandbox
+vs. deferred to the owner's machine — this phase cannot honestly be
+marked fully `verified` the way Phase 1 was, until the owner confirms
+real-world mic/model behavior.

@@ -30,6 +30,16 @@ class PluginsConfig(BaseModel):
     directory: str = "plugins"
 
 
+class VoiceConfig(BaseModel):
+    # See .jarvis/decisions.md D-0015. wakeword_models=[] means "use
+    # openWakeWord's bundled defaults" rather than a specific custom model.
+    wakeword_models: list[str] = Field(default_factory=list)
+    wakeword_threshold: float = 0.5
+    stt_model_size: str = "tiny"
+    tts_rate: int | None = None
+    record_seconds: float = 4.0
+
+
 class JarvisConfig(BaseModel):
     # Base directory all relative paths above are resolved against. Never
     # holds secrets -- see .jarvis/decisions.md D-0012 (secrets go through
@@ -40,6 +50,7 @@ class JarvisConfig(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
+    voice: VoiceConfig = Field(default_factory=VoiceConfig)
 
     def resolved_data_dir(self) -> Path:
         return Path(self.data_dir).expanduser()
@@ -52,3 +63,6 @@ class JarvisConfig(BaseModel):
 
     def resolved_plugins_dir(self) -> Path:
         return self.resolved_data_dir() / self.plugins.directory
+
+    def resolved_voice_capture_dir(self) -> Path:
+        return self.resolved_data_dir() / "voice"

@@ -42,3 +42,23 @@ def test_resolved_paths_are_under_data_dir(tmp_path):
     assert config.resolved_db_path() == tmp_path / "jarvis.db"
     assert config.resolved_log_file() == tmp_path / "logs" / "jarvis.log"
     assert config.resolved_plugins_dir() == tmp_path / "plugins"
+    assert config.resolved_voice_capture_dir() == tmp_path / "voice"
+
+
+def test_voice_config_defaults():
+    config = JarvisConfig()
+
+    assert config.voice.wakeword_models == []
+    assert config.voice.wakeword_threshold == 0.5
+    assert config.voice.stt_model_size == "tiny"
+    assert config.voice.record_seconds == 4.0
+
+
+def test_voice_config_overridable_via_yaml(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("voice:\n  stt_model_size: base\n  wakeword_threshold: 0.7\n")
+
+    config = load_config(config_file)
+
+    assert config.voice.stt_model_size == "base"
+    assert config.voice.wakeword_threshold == 0.7

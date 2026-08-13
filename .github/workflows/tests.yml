@@ -15,6 +15,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install system audio dependencies
+        # espeak/espeak-ng back pyttsx3's Linux driver (see
+        # .jarvis/decisions.md D-0015); libportaudio2 backs sounddevice.
+        # Neither is needed on the owner's actual Windows machine (SAPI5
+        # covers TTS there), only for testing this wrapper here in CI.
+        run: sudo apt-get update && sudo apt-get install -y espeak-ng espeak libportaudio2
+
       - name: Install dependencies
         run: pip install -e ".[dev]"
 

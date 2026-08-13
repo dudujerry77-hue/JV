@@ -82,3 +82,26 @@ project history. For *why* architectural choices were made, see
   `roadmap.md` lists Phase 2 (Voice) before Phase 3 (Multi-AI Brain), but
   voice has nothing to respond with until a brain exists. Recorded as an
   open question in `current_phase.md`, pending owner choice.
+- Owner chose to keep the documented order (Phase 2 -- Voice next).
+  Recorded as D-0014.
+- Discovered two real sandbox constraints while scoping Phase 2: this
+  environment's network policy blocks `huggingface.co` (confirmed via a
+  403 from the outbound proxy), and it has zero audio devices. Chose the
+  voice stack accordingly (D-0015: openWakeWord, faster-whisper, pyttsx3)
+  and designed every model-dependent engine with lazy loading + injectable
+  loaders so wiring is testable without network, while TTS (which needs no
+  model download) is genuinely exercised for real via `espeak-ng`.
+- Implemented `jarvis_core/voice/`: engine interfaces, `Pyttsx3Engine`
+  (TTS, real), `FasterWhisperEngine` (STT, lazy-loaded), `OpenWakeWordEngine`
+  (wake word, lazy-loaded), `audio_io.py` (real mic/speaker adapter via
+  `sounddevice`), `EchoPipeline` + `ListenLoop` (conversation mechanics),
+  `factory.py` (assembles the pipeline, gated by the `MICROPHONE`
+  permission). Added `VoiceConfig` to the config schema.
+- Added 23 new tests (49 total, all passing). Updated CI to install
+  `espeak`/`espeak-ng`/`libportaudio2` so it can genuinely run the
+  TTS/audio tests, not just skip them.
+- Updated `project_state.json`, `current_phase.md`, and `roadmap.md`:
+  Phase 2 is `implemented` but explicitly **not** `verified` -- real
+  wake-word/STT model accuracy and real microphone capture require the
+  owner's actual EliteBook 645 G9 to confirm, which this sandbox cannot
+  do (no audio hardware, blocked model-download host).

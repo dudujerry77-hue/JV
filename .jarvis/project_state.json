@@ -2,13 +2,13 @@
   "project": "Jarvis",
   "governance_version": "0.1.0",
   "last_updated": "2026-08-13",
-  "current_phase": "Phase 1 - Foundation (verified) -- next phase pending owner sequencing decision",
-  "phase_status": "verified",
+  "current_phase": "Phase 2 - Voice",
+  "phase_status": "in_progress",
   "architecture_version": "0.1-draft",
   "repository_state": {
     "application_code_exists": true,
     "technology_stack_decided": true,
-    "notes": "Phase 1 Foundation complete and verified: jarvis_core/ (config, observability, permissions, plugin loader, storage, core service), 26 automated tests passing, CI wired up (.github/workflows/tests.yml), security review performed (found and fixed unenforced loopback binding, D-0013). No first-party plugins ship yet; no AI/voice/automation exists (later phases)."
+    "notes": "Phase 1 Foundation complete and verified (see phase_completion_records/P001-completion.md). Phase 2 Voice in progress: jarvis_core/voice/ (engines, TTS/STT/wake-word wrappers, echo pipeline, audio I/O, permission-gated factory). 49 automated tests passing. TTS is genuinely verified end-to-end in-sandbox; STT and wake-word wrapper *logic* is verified via mocked tests, but real model download + inference + microphone capture require the owner's actual machine (this sandbox has no audio hardware and its network policy blocks huggingface.co)."
   },
   "implemented_features": [
     "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic (jarvis_core/config)",
@@ -16,14 +16,23 @@
     "SQLite storage layer with permission_grants and audit_log tables (jarvis_core/storage)",
     "Capability-based permission system: deny-by-default store, tier classification, require() enforcement gate with audit logging (jarvis_core/permissions)",
     "Plugin manifest schema + directory-based discovery with per-plugin failure isolation (jarvis_core/plugins)",
-    "Core HTTP service (FastAPI/Uvicorn, loopback-only) with /health and /status endpoints (jarvis_core/service)"
+    "Core HTTP service (FastAPI/Uvicorn, loopback-only, enforced) with /health and /status endpoints (jarvis_core/service)",
+    "Voice engine interfaces (Protocol-based, swappable backends) (jarvis_core/voice/engines.py)",
+    "Text-to-speech via pyttsx3/OS voice engine (jarvis_core/voice/tts.py)",
+    "Speech-to-text via faster-whisper, lazy model loading (jarvis_core/voice/stt.py)",
+    "Wake-word detection via openWakeWord, lazy model loading (jarvis_core/voice/wakeword.py)",
+    "Real microphone/speaker I/O adapter via sounddevice (jarvis_core/voice/audio_io.py)",
+    "Echo conversation pipeline + wake-word-gated listen loop (jarvis_core/voice/pipeline.py)",
+    "MICROPHONE-permission-gated voice pipeline assembly (jarvis_core/voice/factory.py)"
   ],
   "verified_features": [
-    "Config system: 4 automated tests passing (defaults, file override, env override, path resolution)",
+    "Config system: 6 automated tests passing (defaults, file override, env override, path resolution, voice config defaults/override)",
     "Permission system: 8 automated tests passing (deny-by-default, grant/revoke, full-catalog seeding, tier mapping, require() allow/deny paths, audit-log write)",
     "Plugin discovery/registry: 6 automated tests passing (empty dir, missing dir, valid manifest, invalid manifest isolation, no-manifest dir skipped, registry register/get/list)",
-    "Core service: 8 automated tests passing (in-process /health and /status, loopback-enforcement allow/reject cases), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file",
-    "Phase 1 -- Foundation: verified complete per roadmap.md's bar (implementation + 26 tests + integration + documentation + security review + CI). See phase_completion_records/P001-completion.md."
+    "Core service: 8 automated tests passing (in-process /health and /status, loopback-enforcement allow/reject cases), plus one manual real-socket smoke test",
+    "Phase 1 -- Foundation: verified complete per roadmap.md's bar. See phase_completion_records/P001-completion.md.",
+    "Text-to-speech (jarvis_core/voice/tts.py): genuinely verified end-to-end in-sandbox -- real audio files produced via the OS voice engine, 2 tests passing.",
+    "Voice wrapper logic only (NOT real model behavior): speech-to-text lazy-loading/joining logic (4 tests), wake-word lazy-loading/threshold logic (6 tests), echo pipeline + listen-loop state machine (4 tests), audio file I/O format correctness (2 tests), MICROPHONE-permission gating (3 tests) -- all against mocked model layers or hardware-free file I/O. Real transcription accuracy, real wake-word accuracy, and real microphone capture are UNVERIFIED and require the owner's actual machine."
   ],
   "blocked_features": [],
   "active_tasks": [],
@@ -40,18 +49,22 @@
     "D-0010",
     "D-0011",
     "D-0012",
-    "D-0013"
+    "D-0013",
+    "D-0014",
+    "D-0015"
   ],
   "known_risks": [
     "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
     "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin -- plugin *execution* (vs. manifest loading) is unbuilt and unreviewed.",
     "The core service has no authentication yet; it is only safe because of the loopback-only enforcement (D-0013) -- must be revisited before any phase exposes it beyond localhost.",
-    "roadmap.md's Phase 2 (Voice) before Phase 3 (Brain) ordering may not make practical sense -- voice has nothing to talk to without a brain. Flagged to owner, not yet resolved (see current_phase.md).",
-    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively."
+    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively.",
+    "Phase 2 voice code has NOT been run against real microphone hardware or real wake-word/STT model inference -- this sandbox has zero audio devices and its network policy blocks huggingface.co (confirmed via 403). This is the primary blocker to marking Phase 2 verified."
   ],
   "next_actions": [
-    "Owner decides next-phase sequencing: follow documented order (Phase 2 Voice next) or reorder to Phase 3 (Brain) first -- see current_phase.md.",
-    "Once decided, record it in decisions.md and begin that phase's implementation using the same process Phase 1 used."
+    "Owner runs Phase 2 on the actual EliteBook 645 G9: install deps, let openWakeWord/faster-whisper download their models over real internet, test with a real microphone and speakers.",
+    "Once confirmed working for real, write phase_completion_records/P002-completion.md documenting what was verified on real hardware, and mark roadmap.md's Phase 2 status 'verified'.",
+    "If real-world testing surfaces issues (e.g. wrong audio device, model accuracy problems), report them back for fixes before considering Phase 2 done.",
+    "After Phase 2 is verified, proceed to Phase 3 (Multi-AI Brain) so the echo pipeline can be replaced with a real response."
   ],
   "last_verified_commit": null
 }

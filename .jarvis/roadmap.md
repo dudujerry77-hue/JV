@@ -36,9 +36,14 @@ See `phase_completion_records/P001-completion.md` for the full record.
 
 ## Phase 2 — Voice
 
-Status: `proposed`
+Status: `implemented`, not yet `verified`
 
-Wake word, speech recognition, text-to-speech, conversation.
+Wake word, speech recognition, text-to-speech, conversation (as an echo
+pipeline until Phase 3 provides a real brain). Code + 49 tests exist and
+pass; text-to-speech is genuinely verified in-sandbox, but wake-word/STT
+model accuracy and real microphone capture require the owner's actual
+hardware to verify (this sandbox has no audio devices and its network
+policy blocks the model download host). See `current_phase.md`.
 
 ## Phase 3 — Multi-AI Brain
 
