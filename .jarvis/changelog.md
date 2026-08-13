@@ -35,3 +35,12 @@ project history. For *why* architectural choices were made, see
   tasks must keep cost exposure visible and bounded. Recorded as D-0008.
 - `current_phase.md` updated to separate resolved vs. still-open
   technology-stack questions; `project_state.json` updated accordingly.
+- Owner answered the remaining Phase 1-blocking questions: Windows,
+  headless service + separate UI, Python, cloud-first/offline not
+  required. Recorded as D-0009. Added agent-proposed, documented defaults
+  for local database (SQLite, D-0010), Core-to-UI IPC (local HTTP API,
+  D-0011), and credential storage (OS keyring, D-0012).
+- Phase advanced to "Phase 1 — Foundation", status `in_progress`.
+  `roadmap.md` and `project_state.json` updated accordingly. Beginning
+  Foundation implementation: package skeleton, config, observability,
+  permissions, plugin loader, core service, tests.

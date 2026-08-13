@@ -2,18 +2,20 @@
   "project": "Jarvis",
   "governance_version": "0.1.0",
   "last_updated": "2026-08-13",
-  "current_phase": "Phase 0 - Governance & Architecture Initialization",
+  "current_phase": "Phase 1 - Foundation",
   "phase_status": "in_progress",
   "architecture_version": "0.1-draft",
   "repository_state": {
     "application_code_exists": false,
-    "technology_stack_decided": false,
-    "notes": "Repository contained a single README.md prior to governance initialization; it was removed at owner request. No implementation has started. Hardware and AI-execution-split questions have since been resolved (D-0005 to D-0008); OS/language/Android/provider-selection questions remain open."
+    "technology_stack_decided": true,
+    "notes": "Governance-only until now. Phase 1 stack decided: Windows, Python, headless service + separate UI over a local HTTP API, SQLite, OS keyring for secrets (D-0009 to D-0012). Implementation starting this pass: package skeleton, config, observability, permissions, plugin loader, core service, tests."
   },
   "implemented_features": [],
   "verified_features": [],
   "blocked_features": [],
-  "active_tasks": [],
+  "active_tasks": [
+    "Phase 1 Foundation scaffolding: config system, observability, permission system skeleton, plugin loader skeleton, core service with health/status endpoints, tests."
+  ],
   "latest_decisions": [
     "D-0001",
     "D-0002",
@@ -22,18 +24,21 @@
     "D-0005",
     "D-0006",
     "D-0007",
-    "D-0008"
+    "D-0008",
+    "D-0009",
+    "D-0010",
+    "D-0011",
+    "D-0012"
   ],
   "known_risks": [
-    "Technology stack (OS, language, desktop-app approach, Android integration, specific providers) is not yet fully chosen; Phase 1 cannot be planned in detail until it is (see current_phase.md).",
-    "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint, not a preference -- any Phase 1 plan must respect it.",
-    "No implementation, tests, or CI exist yet, so there is nothing to regress but also nothing verified.",
-    "Governance system has not yet been reviewed/approved in full by the owner."
+    "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
+    "Phase 1 implementation is new and unverified until tests are written and run in this pass -- do not mark 'verified' before that happens.",
+    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively -- not blocking for Phase 1."
   ],
   "next_actions": [
-    "Owner answers remaining open questions in current_phase.md (OS, desktop-app approach, language, Android approach, specific provider selection, cost ceiling, offline requirements) to fully close D-0003.",
-    "Once unblocked: produce a Phase 1 implementation plan (not implementation itself) and record it as a decision.",
-    "Do not begin Phase 1 implementation until explicitly instructed."
+    "Implement Phase 1 Foundation scope per current_phase.md.",
+    "Write and run tests for each Foundation component; do not mark verified without them passing.",
+    "Update this file's implemented_features/verified_features once work lands, and produce phase_completion_records/P001-completion.md only once the full completion bar in roadmap.md is met."
   ],
   "last_verified_commit": null
 }

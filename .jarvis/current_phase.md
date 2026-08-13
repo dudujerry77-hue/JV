@@ -1,72 +1,71 @@
 # Current Phase
 
-Phase: **Phase 0 — Governance & Architecture Initialization**
+Phase: **Phase 1 — Foundation**
 Status: `in_progress`
-Last updated: 2026-08-13 (hardware and AI-execution questions resolved)
+Last updated: 2026-08-13
 
 ## What Is Happening Right Now
 
-The governance system (`.jarvis/`) is being created for the first time.
-Before this, the repository contained no files at all (a single `README.md`
-was the only tracked file, and it has since been removed). No application
-code, no chosen technology stack, and no implemented features exist.
+Phase 0 governance is complete enough to unblock implementation: all
+owner-only questions needed for Phase 1 architecture have been answered
+(D-0009), and the remaining low-risk implementation choices (database,
+Core-to-UI IPC, credential storage) have been recorded as agent-proposed,
+documented defaults (D-0010, D-0011, D-0012) per the "small changes may use
+a shortened process when documented" allowance in `agent_rules.md`.
 
-## What Must Happen Before Phase 1 Can Start
+Phase 1 objective, per `roadmap.md`: core application, runtime,
+configuration, database, plugin architecture, security foundation.
 
-Per `constitution.md` and the governance initialization instructions, Phase
-1 implementation must **not** begin until:
+## Decided Foundation Stack
 
-1. The owner has reviewed and approved this governance system.
-2. The open questions below have been answered, so that
-   `decisions.md` D-0003 (technology stack) can move from
-   `under_investigation` to `decided`.
-3. A Phase 1 implementation plan exists and is recorded.
+- OS target: Windows (D-0009)
+- App shape: headless background service (Jarvis Core) + separate thin UI
+  client, talking over a local HTTP API (D-0009, D-0011)
+- Language: Python (D-0009)
+- Local database: SQLite (D-0010)
+- Core-to-UI IPC: local HTTP API via FastAPI/Uvicorn, bound to
+  `127.0.0.1` only (D-0011)
+- Credential storage: OS keyring (Windows Credential Manager) via
+  Python's `keyring` library (D-0012)
+- Test framework: pytest (see `testing_strategy.md`)
+- Offline posture: cloud-first, offline not required for Phase 1 (D-0009)
 
-## Resolved Questions
+## Phase 1 Scope (this pass)
 
-- **Local model hardware** — RESOLVED (D-0005, D-0006). Primary laptop is
-  an HP EliteBook 645 G9, 16GB RAM/512GB SSD, integrated AMD Radeon
-  graphics only, no dedicated GPU. Decision: hybrid execution — lightweight
-  always-on functions (wake word, speech-to-text, face recognition, memory
-  search) run locally for free; the main brain model and computer-use
-  automation run via paid cloud API since this hardware cannot run a
-  capable model well. Revisit if hardware changes (eGPU / second
-  local-inference machine).
-- **Provider consolidation** — RESOLVED (D-0007). A single provider/API
-  key may cover multiple capabilities for convenience, but this is never
-  required — the architecture must support mixing providers per
-  capability and must not lock to one vendor.
-- **Billing model** — RESOLVED (D-0008). Jarvis must never require payment
-  just to run/idle. Cost is incurred only when a paid cloud provider is
-  actually invoked; background/unattended tasks must keep cost exposure
-  visible and bounded.
+- Package skeleton (`jarvis_core/`) with a clear module boundary per
+  major system in `architecture.md`.
+- Config system: layered defaults + file + env, no secrets in config
+  files (secrets go through D-0012's keyring layer).
+- Observability foundation: structured logging to file + console.
+- Permission system skeleton: the capability catalog from
+  `permissions_model.md`, backed by SQLite, with an enforced (not just
+  advisory) check mechanism. No sensitive capability is actually wired to
+  a real action yet — this phase builds the gate, not what walks through
+  it.
+- Plugin loader skeleton: discovers a `plugins/` directory, validates each
+  plugin's manifest against `plugin_spec.md`'s required fields, registers
+  valid plugins. No first-party plugins ship yet.
+- Core service: FastAPI app exposing `/health` and `/status`, wired to
+  config, logging, the permission store, and the plugin registry.
+- Tests for all of the above (`testing_strategy.md`).
 
-## Open Questions Still Blocking Full Technology-Stack Decision (D-0003)
+## Explicitly Not in This Pass
 
-These must still be answered by the owner (an agent must not guess them,
-per constitution.md §"Hard Boundaries" and §44 of the original governance
-prompt):
+AI provider integration (Phase 3), voice (Phase 2), computer automation
+(Phase 4), memory beyond the raw SQLite tables needed for permissions/
+plugins (Phase 5), and the actual Mission Control UI (Phase 11) — Phase 1
+only builds the load-bearing skeleton those phases will attach to.
 
-- **Primary laptop OS**: Windows, macOS, or Linux (or must Jarvis support
-  more than one from day one)?
-- **Desktop app approach**: native, Electron/Tauri-style web-tech shell, or
-  headless service + separate UI?
-- **Primary language preference**: does the owner have a strong preference
-  (e.g. Python, TypeScript/Node, Rust, Go) for Jarvis Core?
-- **Android integration approach**: native Android app, Termux-based
-  scripting, or a lightweight companion app talking to the laptop service?
-- **Specific provider selection**: which cloud AI provider(s) should be
-  wired up first for the brain/automation tier (OpenAI, Anthropic, Google,
-  DeepSeek, other), and is there a monthly cost ceiling to design
-  guardrails around (relates to D-0008)?
-- **Offline requirements**: must core conversation/automation work without
-  internet access, or is "cloud-first with graceful degradation" acceptable
-  for Phase 1?
+## Remaining Open Questions (deferred to later phases, not blocking Phase 1)
+
+- Android integration approach — needed for Phase 7, not Phase 1.
+- Specific cloud AI provider(s) to wire up first, and a monthly cost
+  ceiling — needed for Phase 3.
 
 ## Next Action
 
-Once the owner answers the remaining questions above (or explicitly
-instructs an agent to proceed with reasonable defaults), the next step is
-to close out D-0003 in full in `decisions.md`, update this file to Phase 1,
-and produce a Phase 1 implementation plan — **not** to start writing
-application code preemptively.
+Implement the Phase 1 scope above, write tests, verify they pass, update
+`project_state.json`, and produce a Phase 1 completion record in
+`phase_completion_records/` once the full completion bar in `roadmap.md`
+is met (implementation + tests + integration + documentation + security
+review + verification) — a partial pass does not get marked complete.

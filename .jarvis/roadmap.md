@@ -25,11 +25,12 @@ reviewed by the owner. See `current_phase.md`.
 
 ## Phase 1 — Foundation
 
-Status: `proposed`, not started
+Status: `in_progress`
 
 Core application, runtime, configuration, database, plugin architecture,
-security foundation. Requires technology-stack decisions (`decisions.md`
-D-0003) before implementation planning can be finalized.
+security foundation. Technology-stack decisions for this phase are made
+(D-0009 through D-0012); see `current_phase.md` for the concrete scope and
+stack in progress.
 
 ## Phase 2 — Voice
 

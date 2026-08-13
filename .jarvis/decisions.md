@@ -159,3 +159,84 @@ not a technical alternative choice.
 Consequences: `ai_provider_spec.md` and `task_system_spec.md` should
 reflect cost-awareness as a design requirement for anything that runs
 unattended.
+
+---
+
+### D-0009: Primary OS, app shape, language, and offline posture for Phase 1
+Status: decided
+Date: 2026-08-13
+Context: These were the remaining owner-only questions blocking Phase 1
+architecture, listed in `current_phase.md`.
+Decision:
+- **OS**: Windows (the EliteBook 645 G9's actual OS).
+- **App shape**: headless background service + separate thin UI. Jarvis
+  Core runs as an always-on Windows background service/process; Mission
+  Control and any future chat UI are separate clients that talk to it over
+  a local API. This matches the architecture's "Core coordinates, doesn't
+  contain everything" principle and keeps the owner's emergency-stop/
+  disable path independent of any UI process being open.
+- **Language**: Python, for Jarvis Core and first-party plugins, chosen
+  for its local-AI ecosystem (Whisper, embeddings, face recognition, local
+  model runtimes) which directly matters given the local-tier work
+  committed to in D-0006.
+- **Offline posture**: cloud-first; offline capability is not a Phase 1
+  requirement, consistent with D-0006 (the brain already requires a cloud
+  API on current hardware).
+Alternatives considered: Electron/Tauri UI-coupled app (rejected --
+heavier resource footprint on GPU-less hardware, and couples the always-on
+service to a UI process); TypeScript/Rust/Go for Core (rejected -- weaker
+local-AI ecosystems for TypeScript/Go, slower iteration for Rust); full
+offline requirement (rejected -- would fight D-0005's hardware reality).
+Consequences: Unblocks Phase 1 implementation planning. `coding_standards.md`
+and `testing_strategy.md` to be filled in with Python-specific tooling.
+
+### D-0010: Local database — SQLite
+Status: decided
+Date: 2026-08-13
+Context: Foundation requires a local database (`roadmap.md` Phase 1). This
+was not one of the four questions put to the owner because it is a
+low-risk, easily-revisited implementation choice consistent with the
+already-decided local-first principle, not a fork in the project's
+identity.
+Decision: Use SQLite as the local database for Phase 1 (config state,
+permission grants, plugin registry, memory/task metadata). Single-file,
+zero-server-process, works identically on Windows, trivially backed up.
+Alternatives considered: A server-based DB (Postgres, etc.) — rejected as
+unnecessary operational overhead for a single-user, single-machine
+Foundation phase; can be introduced later behind the same storage
+interface if a subsystem outgrows SQLite.
+Consequences: Storage access in `memory_spec.md`, `task_system_spec.md`,
+and `permissions_model.md` implementations should go through a thin
+storage interface so swapping the backend later doesn't require a
+rearchitecture.
+
+### D-0011: Core-to-UI communication — local HTTP API
+Status: decided
+Date: 2026-08-13
+Context: D-0009 committed to a headless-service + separate-UI shape, which
+requires an IPC mechanism between them.
+Decision: Jarvis Core exposes a local HTTP API (FastAPI/Uvicorn), bound
+only to `127.0.0.1` (never a public interface) for Phase 1. Any future
+remote/phone access goes through an explicit, separately-secured channel,
+not this loopback API.
+Alternatives considered: Windows named pipes — more "native" but more
+complex to build and test against, and harder to reuse for the eventual
+web-based Mission Control UI (`observability_spec.md`) than a plain local
+HTTP API.
+Consequences: `security_policy.md`'s "secure IPC" requirement is satisfied
+for Phase 1 by loopback-only binding; this must be revisited before any
+feature exposes Core beyond localhost.
+
+### D-0012: Credential storage — OS keyring
+Status: decided
+Date: 2026-08-13
+Context: `security_policy.md` requires encrypted secrets / secure
+credential storage, never plaintext API keys in source or config.
+Decision: Store AI provider API keys and other secrets using the Windows
+Credential Manager via Python's `keyring` library, not in plaintext config
+files or source.
+Alternatives considered: Plaintext `.env` file — rejected outright, fails
+`security_policy.md`; a custom encrypted-file store — rejected as
+reinventing what the OS credential store already does safely.
+Consequences: Any config field that is a secret must be resolved through
+the credential-storage layer, never read directly from a config file.
