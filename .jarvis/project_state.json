@@ -2,13 +2,13 @@
   "project": "Jarvis",
   "governance_version": "0.1.0",
   "last_updated": "2026-08-13",
-  "current_phase": "Phase 1 - Foundation",
-  "phase_status": "in_progress",
+  "current_phase": "Phase 1 - Foundation (verified) -- next phase pending owner sequencing decision",
+  "phase_status": "verified",
   "architecture_version": "0.1-draft",
   "repository_state": {
     "application_code_exists": true,
     "technology_stack_decided": true,
-    "notes": "Phase 1 Foundation scaffolding implemented under jarvis_core/: config, observability, permissions, plugin loader, storage, core service. 20 automated tests exist and pass (pytest). Not yet CI-wired, not yet security-reviewed as a phase, no first-party plugins ship yet."
+    "notes": "Phase 1 Foundation complete and verified: jarvis_core/ (config, observability, permissions, plugin loader, storage, core service), 26 automated tests passing, CI wired up (.github/workflows/tests.yml), security review performed (found and fixed unenforced loopback binding, D-0013). No first-party plugins ship yet; no AI/voice/automation exists (later phases)."
   },
   "implemented_features": [
     "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic (jarvis_core/config)",
@@ -22,7 +22,8 @@
     "Config system: 4 automated tests passing (defaults, file override, env override, path resolution)",
     "Permission system: 8 automated tests passing (deny-by-default, grant/revoke, full-catalog seeding, tier mapping, require() allow/deny paths, audit-log write)",
     "Plugin discovery/registry: 6 automated tests passing (empty dir, missing dir, valid manifest, invalid manifest isolation, no-manifest dir skipped, registry register/get/list)",
-    "Core service: 2 automated tests passing (in-process /health and /status), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file"
+    "Core service: 8 automated tests passing (in-process /health and /status, loopback-enforcement allow/reject cases), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file",
+    "Phase 1 -- Foundation: verified complete per roadmap.md's bar (implementation + 26 tests + integration + documentation + security review + CI). See phase_completion_records/P001-completion.md."
   ],
   "blocked_features": [],
   "active_tasks": [],
@@ -38,21 +39,19 @@
     "D-0009",
     "D-0010",
     "D-0011",
-    "D-0012"
+    "D-0012",
+    "D-0013"
   ],
   "known_risks": [
     "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
-    "No CI pipeline exists yet -- tests must be run manually (`pytest`) before each commit until CI is wired up.",
-    "No formal security review has been performed on this Foundation pass -- required before Phase 1 can be marked complete per roadmap.md's completion bar.",
-    "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin.",
-    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively -- not blocking for Phase 1."
+    "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin -- plugin *execution* (vs. manifest loading) is unbuilt and unreviewed.",
+    "The core service has no authentication yet; it is only safe because of the loopback-only enforcement (D-0013) -- must be revisited before any phase exposes it beyond localhost.",
+    "roadmap.md's Phase 2 (Voice) before Phase 3 (Brain) ordering may not make practical sense -- voice has nothing to talk to without a brain. Flagged to owner, not yet resolved (see current_phase.md).",
+    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively."
   ],
   "next_actions": [
-    "Owner review of this Foundation pass.",
-    "Wire up CI to run pytest automatically on push.",
-    "Perform and record a security review of the permission/plugin/service layers before declaring Phase 1 complete.",
-    "Write phase_completion_records/P001-completion.md only once the full completion bar in roadmap.md is met (a partial pass, however solid, is not 'complete').",
-    "Decide what real capability Phase 1 should be exercised against next (e.g. a first trivial plugin, or moving into Phase 3 AI provider wiring)."
+    "Owner decides next-phase sequencing: follow documented order (Phase 2 Voice next) or reorder to Phase 3 (Brain) first -- see current_phase.md.",
+    "Once decided, record it in decisions.md and begin that phase's implementation using the same process Phase 1 used."
   ],
   "last_verified_commit": null
 }

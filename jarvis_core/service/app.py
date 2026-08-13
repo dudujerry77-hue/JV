@@ -16,6 +16,22 @@ from jarvis_core.plugins.registry import PluginRegistry
 
 CURRENT_PHASE = "Phase 1 - Foundation"
 
+# This API has no authentication yet -- see .jarvis/decisions.md D-0011.
+# The only thing standing between it and an unauthenticated remote caller
+# is network exposure, so refuse to bind anywhere else until real auth
+# exists.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def ensure_loopback_only(host: str) -> None:
+    if host not in LOOPBACK_HOSTS:
+        raise RuntimeError(
+            f"Refusing to bind Jarvis Core to '{host}': this API has no "
+            "authentication yet, so it must stay loopback-only "
+            f"(allowed: {sorted(LOOPBACK_HOSTS)}). See "
+            ".jarvis/decisions.md D-0011."
+        )
+
 
 def create_app(
     permission_store: PermissionStore,

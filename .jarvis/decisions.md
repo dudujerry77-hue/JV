@@ -240,3 +240,27 @@ Alternatives considered: Plaintext `.env` file — rejected outright, fails
 reinventing what the OS credential store already does safely.
 Consequences: Any config field that is a secret must be resolved through
 the credential-storage layer, never read directly from a config file.
+
+---
+
+### D-0013: Enforce loopback-only binding in code, not just by config default
+Status: decided
+Date: 2026-08-13
+Context: Closing out Phase 1's required security review (`security_policy.md`)
+found that D-0011's "loopback-only" commitment was only a default config
+value (`service.host = "127.0.0.1"`), not an enforced constraint. Since the
+core service ships with no authentication yet, overriding that default
+(via config file or `JARVIS_SERVICE__HOST` env var) would have exposed a
+completely unauthenticated control API to the network.
+Decision: `jarvis_core/service/app.py::ensure_loopback_only()` is called
+before the service binds (`jarvis_core/service/main.py::run()`) and raises
+`RuntimeError`, refusing to start, if the configured host is not one of
+`127.0.0.1`, `localhost`, `::1`. This must be revisited (not simply
+removed) before any future phase adds real authentication and needs to
+expose the API beyond localhost (e.g. phone access in Phase 7).
+Alternatives considered: Leaving it as a documented-but-unenforced
+convention — rejected; conventions don't prevent misconfiguration, and the
+consequence here (unauthenticated remote control of Jarvis) is severe
+enough to warrant a hard failure instead of a warning.
+Consequences: Covered by `tests/test_service.py`'s loopback allow/reject
+tests. Recorded in `phase_completion_records/P001-completion.md`.

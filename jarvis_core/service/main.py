@@ -10,7 +10,7 @@ from jarvis_core.observability.logging import get_logger, setup_logging
 from jarvis_core.permissions.store import PermissionStore
 from jarvis_core.plugins.loader import discover_plugins
 from jarvis_core.plugins.registry import PluginRegistry
-from jarvis_core.service.app import create_app
+from jarvis_core.service.app import create_app, ensure_loopback_only
 from jarvis_core.storage.db import get_connection
 
 
@@ -35,6 +35,7 @@ def build_app():
 
 def run() -> None:
     app, config = build_app()
+    ensure_loopback_only(config.service.host)
     uvicorn.run(app, host=config.service.host, port=config.service.port)
 
 

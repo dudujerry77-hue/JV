@@ -66,3 +66,19 @@ project history. For *why* architectural choices were made, see
   review, and no phase completion record yet (roadmap.md's completion bar
   is: implementation + tests + integration + documentation + security
   review + verification, and the security review has not happened).
+- Performed the Phase 1 security review. Found a real gap: the core
+  service's loopback-only binding (D-0011) was only a config default, not
+  enforced -- overriding it would have exposed an unauthenticated API to
+  the network. Fixed via `ensure_loopback_only()` in
+  `jarvis_core/service/app.py`, called before bind in `service/main.py`.
+  Recorded as D-0013. Added 6 new tests (now 26 total, all passing).
+- Added CI (`.github/workflows/tests.yml`) -- runs `pytest -v` on every
+  push and pull request.
+- Wrote `phase_completion_records/P001-completion.md`. Phase 1 -- 
+  Foundation is now `verified` per `roadmap.md`'s own completion bar.
+  `roadmap.md`, `current_phase.md`, and `project_state.json` updated
+  accordingly.
+- Flagged an open sequencing question rather than silently deciding it:
+  `roadmap.md` lists Phase 2 (Voice) before Phase 3 (Multi-AI Brain), but
+  voice has nothing to respond with until a brain exists. Recorded as an
+  open question in `current_phase.md`, pending owner choice.

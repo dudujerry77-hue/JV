@@ -25,12 +25,14 @@ reviewed by the owner. See `current_phase.md`.
 
 ## Phase 1 — Foundation
 
-Status: `in_progress`
+Status: `verified`
 
 Core application, runtime, configuration, database, plugin architecture,
-security foundation. Technology-stack decisions for this phase are made
-(D-0009 through D-0012); see `current_phase.md` for the concrete scope and
-stack in progress.
+security foundation. Complete per this document's own completion bar:
+implementation, 26 passing tests, integration (real end-to-end smoke
+test), documentation, a security review (which found and fixed a real gap
+-- unenforced loopback binding), and CI now runs the suite on every push.
+See `phase_completion_records/P001-completion.md` for the full record.
 
 ## Phase 2 — Voice
 
