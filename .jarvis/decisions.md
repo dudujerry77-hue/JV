@@ -81,3 +81,81 @@ Alternatives considered: N/A — factual record.
 Consequences: `feature_spec.md` and `roadmap.md` correctly show zero
 implemented features. No migration or backward-compatibility work is
 needed for Phase 1.
+
+---
+
+### D-0005: Primary device hardware assessment (laptop)
+Status: decided
+Date: 2026-08-13
+Context: `current_phase.md` flagged local-model hardware as an open
+question blocking D-0003. The owner's primary laptop is an HP EliteBook
+645 G9, 16GB RAM / 512GB SSD.
+Decision: Recorded as fact — this model has **no dedicated/discrete GPU**.
+It uses integrated AMD Radeon graphics only, with 16GB of RAM shared
+between CPU and graphics. This is a business/productivity laptop, not a
+workstation or gaming laptop.
+Alternatives considered: N/A — factual hardware record.
+Consequences: Local inference capacity on this device is limited to small,
+lightweight models. A capable "brain"-tier model cannot run well on this
+hardware. This directly drives D-0006.
+
+### D-0006: Hybrid local/cloud AI execution strategy
+Status: decided
+Date: 2026-08-13
+Context: Given D-0005, and the owner's stated wish to run some capability
+locally while keeping costs sensible, an execution split is needed between
+what runs on-device and what runs via paid cloud API.
+Decision: Jarvis splits AI execution by capability tier:
+- **Local, free, always-on** (run on the EliteBook 645 G9's CPU/integrated
+  graphics): wake word detection, speech-to-text (e.g. Whisper
+  small/base), face/owner recognition, memory/embedding search, and
+  lower-quality local text-to-speech.
+- **Cloud, paid, usage-billed**: the main reasoning/coding/research
+  "brain" model, and computer-use/UI-automation, since current hardware
+  cannot run capable models for these well.
+This split is a default informed by current hardware, not a permanent
+architectural lock — it should be revisited if hardware changes (e.g. an
+eGPU or a second local-inference machine is added later).
+Alternatives considered: All-cloud (rejected — owner wants some local
+capability and free always-on functions); all-local (rejected — current
+hardware cannot run a capable brain model; would badly degrade quality).
+Consequences: `ai_provider_spec.md` updated to document this split.
+Ongoing AI cost is driven only by brain/automation usage, not by idle time
+or the always-on local functions.
+
+### D-0007: Multi-provider is required, single-provider convenience is optional
+Status: decided
+Date: 2026-08-13
+Context: The owner asked that using one provider/API key to cover
+brain + vision + computer-use be **optional**, not a requirement, reaffirming
+the existing hard boundary in `constitution.md` against single-vendor
+lock-in.
+Decision: The AI provider abstraction (`ai_provider_spec.md`) must support
+mixing providers per capability (e.g. Anthropic for coding, a different
+provider for something else). Using a single provider for convenience is
+allowed and may be the practical default, but the architecture must never
+require it and must degrade gracefully if any one provider is
+unavailable or dropped.
+Alternatives considered: Hard-coding a single "primary provider"; rejected,
+conflicts with `constitution.md` §"Hard Boundaries".
+Consequences: No behavior change to the already-decided provider
+abstraction — this entry exists to record the owner's explicit
+confirmation of that requirement.
+
+### D-0008: No-cost-to-idle billing principle
+Status: decided
+Date: 2026-08-13
+Context: The owner asked whether payment is required just to run Jarvis,
+versus only when actively using paid capabilities.
+Decision: Jarvis must never require payment merely to exist or idle.
+Cost is only incurred when Jarvis actually invokes a paid cloud provider.
+The AI Router and Task System must avoid designs where background/idle
+processes (e.g. long-running monitoring missions) repeatedly poll a paid
+model when a local model or reduced polling frequency would do — cost
+exposure from background tasks must be visible to the owner
+(`observability_spec.md`) and bounded/configurable.
+Alternatives considered: N/A — this is a cost-transparency requirement,
+not a technical alternative choice.
+Consequences: `ai_provider_spec.md` and `task_system_spec.md` should
+reflect cost-awareness as a design requirement for anything that runs
+unattended.

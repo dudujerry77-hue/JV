@@ -8,7 +8,7 @@
   "repository_state": {
     "application_code_exists": false,
     "technology_stack_decided": false,
-    "notes": "Repository contained a single README.md prior to governance initialization; it was removed at owner request. No implementation has started."
+    "notes": "Repository contained a single README.md prior to governance initialization; it was removed at owner request. No implementation has started. Hardware and AI-execution-split questions have since been resolved (D-0005 to D-0008); OS/language/Android/provider-selection questions remain open."
   },
   "implemented_features": [],
   "verified_features": [],
@@ -18,16 +18,20 @@
     "D-0001",
     "D-0002",
     "D-0003",
-    "D-0004"
+    "D-0004",
+    "D-0005",
+    "D-0006",
+    "D-0007",
+    "D-0008"
   ],
   "known_risks": [
-    "Technology stack is not yet chosen; Phase 1 cannot be planned in detail until it is (see current_phase.md).",
+    "Technology stack (OS, language, desktop-app approach, Android integration, specific providers) is not yet fully chosen; Phase 1 cannot be planned in detail until it is (see current_phase.md).",
+    "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint, not a preference -- any Phase 1 plan must respect it.",
     "No implementation, tests, or CI exist yet, so there is nothing to regress but also nothing verified.",
-    "Governance system has not yet been reviewed/approved by the owner."
+    "Governance system has not yet been reviewed/approved in full by the owner."
   ],
   "next_actions": [
-    "Owner review and approval of .jarvis/ governance system.",
-    "Owner answers open questions in current_phase.md to unblock D-0003 (technology stack).",
+    "Owner answers remaining open questions in current_phase.md (OS, desktop-app approach, language, Android approach, specific provider selection, cost ceiling, offline requirements) to fully close D-0003.",
     "Once unblocked: produce a Phase 1 implementation plan (not implementation itself) and record it as a decision.",
     "Do not begin Phase 1 implementation until explicitly instructed."
   ],
