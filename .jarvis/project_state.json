@@ -1,0 +1,35 @@
+{
+  "project": "Jarvis",
+  "governance_version": "0.1.0",
+  "last_updated": "2026-08-13",
+  "current_phase": "Phase 0 - Governance & Architecture Initialization",
+  "phase_status": "in_progress",
+  "architecture_version": "0.1-draft",
+  "repository_state": {
+    "application_code_exists": false,
+    "technology_stack_decided": false,
+    "notes": "Repository contained a single README.md prior to governance initialization; it was removed at owner request. No implementation has started."
+  },
+  "implemented_features": [],
+  "verified_features": [],
+  "blocked_features": [],
+  "active_tasks": [],
+  "latest_decisions": [
+    "D-0001",
+    "D-0002",
+    "D-0003",
+    "D-0004"
+  ],
+  "known_risks": [
+    "Technology stack is not yet chosen; Phase 1 cannot be planned in detail until it is (see current_phase.md).",
+    "No implementation, tests, or CI exist yet, so there is nothing to regress but also nothing verified.",
+    "Governance system has not yet been reviewed/approved by the owner."
+  ],
+  "next_actions": [
+    "Owner review and approval of .jarvis/ governance system.",
+    "Owner answers open questions in current_phase.md to unblock D-0003 (technology stack).",
+    "Once unblocked: produce a Phase 1 implementation plan (not implementation itself) and record it as a decision.",
+    "Do not begin Phase 1 implementation until explicitly instructed."
+  ],
+  "last_verified_commit": null
+}
