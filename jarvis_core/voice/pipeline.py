@@ -41,6 +41,15 @@ class ListenLoop:
     Audio I/O is injected (`record_fn`, `play_fn`) so this control flow is
     unit-testable without real microphone/speaker hardware, which does not
     exist in the agent's sandbox.
+
+    IMPORTANT: handle_audio_chunk() runs model inference and must be
+    called from a normal consumer loop, never directly from a real-time
+    audio callback (e.g. sounddevice's `InputStream(callback=...)`).
+    Doing so was the root cause of the first real-hardware wake-word test
+    failing (see .jarvis/decisions.md D-0016) -- inference inside the
+    callback can fall behind PortAudio's deadline and silently drop input.
+    Use jarvis_core.voice.audio_io.MicrophoneChunkStream to decouple fast
+    capture from this slower processing.
     """
 
     def __init__(

@@ -16,11 +16,11 @@ output and report it back -- it gets recorded in
 marked `verified` in roadmap.md once these checks genuinely pass.
 """
 
+import queue
 import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import sounddevice as sd
 
 from jarvis_core.voice import audio_io
@@ -83,30 +83,44 @@ def step_3_wakeword() -> bool:
     print("Loading openWakeWord model (downloads on first use -- needs real internet)...")
     engine = OpenWakeWordEngine(threshold=0.5)
 
-    detected = {"name": None}
+    # Capture and inference are decoupled on purpose (see .jarvis/decisions.md
+    # D-0016): the previous version of this script ran predict() directly
+    # inside sounddevice's real-time callback, which can silently drop audio
+    # if inference falls behind the callback's deadline. This loop instead
+    # pulls chunks off a queue that a lightweight callback fills.
+    detected_name = None
+    best_scores: dict[str, float] = {}
+    deadline = time.time() + 15
 
-    def callback(indata, frames, time_info, status):
-        if detected["name"] is not None:
-            return
-        chunk = indata[:, 0].astype(np.int16)
-        scores = engine.predict(chunk)
-        name = engine.detected(scores)
-        if name:
-            detected["name"] = name
+    with audio_io.MicrophoneChunkStream(chunk_size=CHUNK_SIZE, sample_rate=SAMPLE_RATE) as mic:
+        while time.time() < deadline and detected_name is None:
+            try:
+                chunk = mic.get_chunk(timeout=0.5)
+            except queue.Empty:
+                continue
 
-    with sd.InputStream(
-        samplerate=SAMPLE_RATE, channels=1, dtype="int16", blocksize=CHUNK_SIZE, callback=callback
-    ):
-        for _ in range(15):
-            if detected["name"]:
-                break
-            time.sleep(1)
+            scores = engine.predict(chunk)
+            for name, score in scores.items():
+                if score > best_scores.get(name, 0.0):
+                    best_scores[name] = score
 
-    if detected["name"]:
-        print(f"PASS -- detected wake word: {detected['name']}")
+            detected_name = engine.detected(scores)
+
+    if detected_name:
+        print(f"PASS -- detected wake word: {detected_name}")
     else:
         print("FAIL -- no wake word detected within 15 seconds")
-    return detected["name"] is not None
+
+    if best_scores:
+        top = sorted(best_scores.items(), key=lambda kv: kv[1], reverse=True)[:5]
+        print("Highest score seen per model (threshold is 0.5):")
+        for name, score in top:
+            print(f"  {name}: {score:.3f}")
+    else:
+        print("No scores were produced at all -- the mic may not be capturing audio "
+              "on this stream (check Windows privacy settings for microphone access).")
+
+    return detected_name is not None
 
 
 def step_4_full_pipeline() -> None:
@@ -129,27 +143,25 @@ def step_4_full_pipeline() -> None:
         capture_dir=CAPTURE_DIR,
     )
 
-    triggered = {"value": False}
-
-    def callback(indata, frames, time_info, status):
-        if triggered["value"]:
-            return
-        chunk = indata[:, 0].astype(np.int16)
-        name = loop.handle_audio_chunk(chunk)
-        if name:
-            triggered["value"] = True
+    triggered = False
+    deadline = time.time() + 20
 
     print("Say 'hey jarvis' then a short sentence within 20 seconds...")
-    with sd.InputStream(
-        samplerate=SAMPLE_RATE, channels=1, dtype="int16", blocksize=CHUNK_SIZE, callback=callback
-    ):
-        for _ in range(20):
-            if triggered["value"]:
-                time.sleep(6)  # let record -> transcribe -> synthesize -> playback finish
-                break
-            time.sleep(1)
+    with audio_io.MicrophoneChunkStream(chunk_size=CHUNK_SIZE, sample_rate=SAMPLE_RATE) as mic:
+        while time.time() < deadline and not triggered:
+            try:
+                chunk = mic.get_chunk(timeout=0.5)
+            except queue.Empty:
+                continue
 
-    if triggered["value"]:
+            # handle_audio_chunk() itself calls record_fn()/echo.respond_to_audio()/
+            # play_fn() synchronously, which briefly blocks this loop -- that's fine
+            # here since it's a plain while loop, not a real-time audio callback.
+            name = loop.handle_audio_chunk(chunk)
+            if name:
+                triggered = True
+
+    if triggered:
         print("PASS -- pipeline triggered end-to-end. Did you hear Jarvis echo your sentence back?")
     else:
         print("FAIL -- pipeline never triggered (wake word not detected within 20 seconds)")

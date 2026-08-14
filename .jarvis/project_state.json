@@ -8,7 +8,7 @@
   "repository_state": {
     "application_code_exists": true,
     "technology_stack_decided": true,
-    "notes": "Phase 1 Foundation complete and verified (see phase_completion_records/P001-completion.md). Phase 2 Voice in progress: jarvis_core/voice/ (engines, TTS/STT/wake-word wrappers, echo pipeline, audio I/O, permission-gated factory). 49 automated tests passing. TTS is genuinely verified end-to-end in-sandbox; STT and wake-word wrapper *logic* is verified via mocked tests, but real model download + inference + microphone capture require the owner's actual machine (this sandbox has no audio hardware and its network policy blocks huggingface.co)."
+    "notes": "Phase 1 Foundation complete and verified (see phase_completion_records/P001-completion.md). Phase 2 Voice: round 1 real-hardware test on owner's EliteBook found audio/TTS/STT PASS but wake-word detection FAIL. Root-caused to inference running inside a real-time audio callback (D-0016) and fixed via a queue-decoupled MicrophoneChunkStream; 52 automated tests passing. NOT YET RE-VERIFIED on real hardware -- awaiting round 2 results before Phase 2 can be marked verified."
   },
   "implemented_features": [
     "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic (jarvis_core/config)",
@@ -32,7 +32,8 @@
     "Core service: 8 automated tests passing (in-process /health and /status, loopback-enforcement allow/reject cases), plus one manual real-socket smoke test",
     "Phase 1 -- Foundation: verified complete per roadmap.md's bar. See phase_completion_records/P001-completion.md.",
     "Text-to-speech (jarvis_core/voice/tts.py): genuinely verified end-to-end in-sandbox -- real audio files produced via the OS voice engine, 2 tests passing.",
-    "Voice wrapper logic only (NOT real model behavior): speech-to-text lazy-loading/joining logic (4 tests), wake-word lazy-loading/threshold logic (6 tests), echo pipeline + listen-loop state machine (4 tests), audio file I/O format correctness (2 tests), MICROPHONE-permission gating (3 tests) -- all against mocked model layers or hardware-free file I/O. Real transcription accuracy, real wake-word accuracy, and real microphone capture are UNVERIFIED and require the owner's actual machine."
+    "Voice wrapper logic only (NOT real model behavior): speech-to-text lazy-loading/joining logic (4 tests), wake-word lazy-loading/threshold logic (6 tests), echo pipeline + listen-loop state machine (4 tests), audio file I/O format correctness (2 tests), capture-callback queue-decoupling contract (3 tests), MICROPHONE-permission gating (3 tests) -- all against mocked model layers or hardware-free file I/O.",
+    "Round 1 real-hardware results (owner, EliteBook 645 G9): audio devices PASS, TTS PASS, STT PASS, wake-word detection FAIL. Root cause found and fixed (D-0016) -- inference was running inside a real-time audio callback, which can silently drop input. NOT yet re-verified on real hardware -- Phase 2 remains unverified pending round 2."
   ],
   "blocked_features": [],
   "active_tasks": [],
@@ -51,20 +52,20 @@
     "D-0012",
     "D-0013",
     "D-0014",
-    "D-0015"
+    "D-0015",
+    "D-0016"
   ],
   "known_risks": [
     "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
     "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin -- plugin *execution* (vs. manifest loading) is unbuilt and unreviewed.",
     "The core service has no authentication yet; it is only safe because of the loopback-only enforcement (D-0013) -- must be revisited before any phase exposes it beyond localhost.",
     "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively.",
-    "Phase 2 voice code has NOT been run against real microphone hardware or real wake-word/STT model inference -- this sandbox has zero audio devices and its network policy blocks huggingface.co (confirmed via 403). This is the primary blocker to marking Phase 2 verified."
+    "Round 1 hardware test found wake-word detection failing on the owner's real machine. Root cause fixed (D-0016: audio capture/inference decoupling) but NOT yet re-verified on real hardware -- do not assume the fix works until round 2 confirms it."
   ],
   "next_actions": [
-    "Owner runs Phase 2 on the actual EliteBook 645 G9: install deps, let openWakeWord/faster-whisper download their models over real internet, test with a real microphone and speakers.",
-    "Once confirmed working for real, write phase_completion_records/P002-completion.md documenting what was verified on real hardware, and mark roadmap.md's Phase 2 status 'verified'.",
-    "If real-world testing surfaces issues (e.g. wrong audio device, model accuracy problems), report them back for fixes before considering Phase 2 done.",
-    "After Phase 2 is verified, proceed to Phase 3 (Multi-AI Brain) so the echo pipeline can be replaced with a real response."
+    "Owner pulls this fix and re-runs scripts/verify_phase2_voice.py on the EliteBook 645 G9.",
+    "If wake-word detection now passes: write phase_completion_records/P002-completion.md and mark roadmap.md's Phase 2 status 'verified', then proceed to Phase 3 (Multi-AI Brain).",
+    "If it still fails: use the new per-model score diagnostics (printed even on failure) to determine whether it's a threshold-tuning issue (scores close to 0.5) or a deeper capture issue (no scores/near-zero scores), and report back for further investigation."
   ],
   "last_verified_commit": null
 }

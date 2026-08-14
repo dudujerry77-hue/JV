@@ -320,3 +320,52 @@ Consequences: `pyproject.toml` gains `faster-whisper`, `openwakeword`,
 vs. deferred to the owner's machine — this phase cannot honestly be
 marked fully `verified` the way Phase 1 was, until the owner confirms
 real-world mic/model behavior.
+
+---
+
+### D-0016: Decouple audio capture from inference (fix real-hardware wake-word failure)
+Status: decided
+Date: 2026-08-13
+Context: First real-hardware run of `scripts/verify_phase2_voice.py` on
+the owner's EliteBook 645 G9: audio devices, TTS, and STT all passed, but
+wake-word detection failed — "hey jarvis" was not detected within 15
+seconds. Investigation against the real `openwakeword` source
+(`model.py`) confirmed the chunk size (1280 samples/80ms), sample rate
+(16kHz), dtype (int16), and threshold-checking logic in
+`jarvis_core/voice/wakeword.py` all matched openWakeWord's documented
+contract correctly. The bug was not in detection logic — it was in how
+the verification script fed audio into it: `engine.predict()` (a TFLite
+model inference call) ran directly inside `sounddevice.InputStream`'s
+real-time audio callback. PortAudio callbacks must return in a few
+milliseconds; running inference inside one risks it falling behind the
+deadline, which can cause PortAudio to silently drop/overrun input frames
+— the mic still "works" for simple blocking calls like `sd.rec()` (which
+is why device detection, TTS, and STT all passed), but streaming
+detection can end up processing mostly-empty or corrupted audio without
+any visible error, especially since the script wasn't even checking
+`sounddevice`'s `status` flag (which flags exactly this: input overflow).
+Decision: Decouple capture from inference. Added
+`jarvis_core/voice/audio_io.MicrophoneChunkStream` (queue-based: a fast
+callback does nothing but copy each chunk into a `queue.Queue`; a normal
+consumer loop in the calling thread pulls chunks off the queue and does
+the actual `predict()` call, with no real-time deadline to violate).
+Updated `scripts/verify_phase2_voice.py`'s wake-word and full-pipeline
+steps to use this pattern, and added a diagnostic: the script now prints
+the highest score seen per wake-word model even on failure, so a future
+failure can be distinguished as "close but under threshold" (tuning
+issue) vs. "no signal at all" (mic/device issue) instead of a bare
+pass/fail. Added a warning note to `ListenLoop`'s docstring in
+`pipeline.py` so this mistake isn't repeated when real service wiring
+(Phase 2/3) drives it from a live audio stream.
+Alternatives considered: Lowering the detection threshold — rejected as a
+first move; changing a threshold without evidence the model's real scores
+were actually close to 0.5 would have been guessing, not diagnosis. The
+new diagnostic output will show whether threshold-tuning is still needed
+after this fix is retested.
+Consequences: 3 new tests for the capture-callback contract (enqueues
+without inference, copies rather than aliases the buffer, doesn't raise
+on status flags) — all mockable without real hardware, since the property
+being tested is "the callback does no slow work," not real audio capture.
+52 tests total, all passing. Phase 2 is still not marked `verified` —
+this fix needs to be re-run on the owner's actual hardware before that
+can happen.

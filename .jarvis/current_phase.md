@@ -75,12 +75,37 @@ machine.
 `libportaudio2` so CI can genuinely exercise the TTS/audio-file tests, not
 just skip them).
 
+## Round 1 Hardware Verification Results (owner, EliteBook 645 G9)
+
+- Audio devices: PASS
+- TTS: PASS
+- STT: PASS
+- Wake-word detection: **FAIL** — "hey jarvis" not detected within 15s
+- Full pipeline: not tested (blocked by wake-word failure)
+
+## Round 1 Fix (D-0016)
+
+Root cause: `scripts/verify_phase2_voice.py` ran wake-word model
+inference directly inside `sounddevice`'s real-time audio callback, which
+can silently drop input if inference falls behind the callback's
+deadline — chunk size/sample rate/dtype/threshold logic in
+`jarvis_core/voice/wakeword.py` itself all checked out fine against the
+real openWakeWord source. Fixed by adding
+`audio_io.MicrophoneChunkStream` (queue-decoupled capture) and rewriting
+the script's wake-word and full-pipeline steps to use it. The script now
+also prints the highest per-model score seen even on failure, so a
+second failure can be diagnosed as "close but under threshold" vs. "no
+signal at all" instead of a bare pass/fail. 3 new tests added (52 total,
+all passing). See `decisions.md` D-0016 for full detail.
+
+**Not yet re-verified on real hardware.** This fix needs another run.
+
 ## Next Action
 
-**This phase cannot be marked `verified` from here.** The owner needs to
-run it on the actual EliteBook 645 G9 — real internet lets openWakeWord
-and faster-whisper download their models, and a real microphone/speakers
-let the full wake-word -> listen -> echo loop be tested end-to-end. Once
-confirmed working, write `phase_completion_records/P002-completion.md`
-and update `roadmap.md`'s Phase 2 status to `verified`. Only after that
-should Phase 3 (Multi-AI Brain) begin.
+Owner re-runs `scripts/verify_phase2_voice.py` on the EliteBook 645 G9
+(after pulling this fix) and reports the console output, including the
+new per-model score diagnostics from step 3. If it passes, write
+`phase_completion_records/P002-completion.md` and update `roadmap.md`'s
+Phase 2 status to `verified`, then move to Phase 3. If it still fails,
+the score diagnostics should narrow down whether it's a threshold-tuning
+issue or something else entirely.

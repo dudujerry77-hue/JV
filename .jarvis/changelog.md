@@ -105,3 +105,25 @@ project history. For *why* architectural choices were made, see
   wake-word/STT model accuracy and real microphone capture require the
   owner's actual EliteBook 645 G9 to confirm, which this sandbox cannot
   do (no audio hardware, blocked model-download host).
+- **Round 1 real-hardware results from the owner**: audio devices PASS,
+  TTS PASS, STT PASS, wake-word detection FAIL ("hey jarvis" not detected
+  within 15s). Full pipeline untested (blocked by the wake-word failure).
+- Investigated against the real openWakeWord source. Chunk size, sample
+  rate, dtype, and threshold logic in `jarvis_core/voice/wakeword.py` all
+  checked out correctly. Root cause: `scripts/verify_phase2_voice.py` ran
+  wake-word inference directly inside `sounddevice`'s real-time audio
+  callback, risking silently dropped input if inference fell behind the
+  callback's deadline -- simple blocking calls (`sd.rec()`, used by
+  TTS/STT) don't have this problem, which is why only wake-word detection
+  failed. Recorded as D-0016.
+- Fixed by adding `jarvis_core/voice/audio_io.MicrophoneChunkStream`
+  (queue-decoupled capture: a fast callback only enqueues, a normal loop
+  does the actual inference) and rewriting the verification script's
+  wake-word and full-pipeline steps to use it. Added a diagnostic: the
+  script now prints the highest score seen per wake-word model even on
+  failure. Added a warning to `ListenLoop`'s docstring so this mistake
+  isn't repeated in future real service wiring.
+- Added 3 tests for the new capture-callback contract (52 total, all
+  passing). Updated `project_state.json` and `current_phase.md` with
+  round 1 results and the fix -- Phase 2 remains explicitly unverified,
+  pending a round 2 real-hardware retest.
