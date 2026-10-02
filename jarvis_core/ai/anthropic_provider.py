@@ -8,7 +8,7 @@ D-0007 still holds: nothing outside this module imports `anthropic`.
 """
 
 from jarvis_core.ai.provider import AIProvider, AIProviderError, AIResponse, AIUsage
-from jarvis_core.secrets import get_secret
+from jarvis_core.secrets import SecretStoreError, get_secret
 
 API_KEY_SECRET_NAME = "anthropic_api_key"
 
@@ -35,7 +35,11 @@ class AnthropicProvider(AIProvider):
                 "the 'anthropic' package is not installed"
             ) from exc
 
-        api_key = get_secret(API_KEY_SECRET_NAME)
+        try:
+            api_key = get_secret(API_KEY_SECRET_NAME)
+        except SecretStoreError as exc:
+            raise AIProviderError(str(exc)) from exc
+
         if not api_key:
             raise AIProviderError(
                 f"no Anthropic API key found in the OS keyring under "

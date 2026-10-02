@@ -5,6 +5,7 @@ from jarvis_core.ai.provider import AIProviderError
 from jarvis_core.ai.router import CostCeilingExceeded
 from jarvis_core.permissions.capabilities import Capability
 from jarvis_core.permissions.checker import PermissionDenied
+from jarvis_core.secrets import SecretStoreError
 
 
 # ---- CostTracker ------------------------------------------------------
@@ -92,6 +93,22 @@ def test_anthropic_provider_raises_clear_error_without_api_key(monkeypatch):
     provider = AnthropicProvider()
 
     with pytest.raises(AIProviderError, match=API_KEY_SECRET_NAME):
+        provider.complete("hello", model="fake-model")
+
+
+def test_anthropic_provider_wraps_keyring_backend_failure(monkeypatch):
+    """A keyring backend failure (no backend installed, vault locked) must
+    surface as AIProviderError, not an uncaught exception -- this is what
+    service/app.py's /ai/complete turns into a clean 502 instead of a raw
+    500 with a stack trace."""
+
+    def _raise(name):
+        raise SecretStoreError("no backend")
+
+    monkeypatch.setattr("jarvis_core.ai.anthropic_provider.get_secret", _raise)
+    provider = AnthropicProvider()
+
+    with pytest.raises(AIProviderError, match="no backend"):
         provider.complete("hello", model="fake-model")
 
 

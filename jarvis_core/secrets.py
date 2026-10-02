@@ -7,17 +7,33 @@ place instead of the underlying OS-specific backend.
 """
 
 import keyring
+from keyring.errors import KeyringError
 
 SERVICE_NAME = "jarvis"
 
 
+class SecretStoreError(Exception):
+    """The OS keyring backend itself is unavailable or failed (no backend
+    installed, vault locked, etc.) -- distinct from a secret simply not
+    being set, which is a normal `None` return from get_secret()."""
+
+
 def get_secret(name: str) -> str | None:
-    return keyring.get_password(SERVICE_NAME, name)
+    try:
+        return keyring.get_password(SERVICE_NAME, name)
+    except KeyringError as exc:
+        raise SecretStoreError(f"OS keyring backend unavailable: {exc}") from exc
 
 
 def set_secret(name: str, value: str) -> None:
-    keyring.set_password(SERVICE_NAME, name, value)
+    try:
+        keyring.set_password(SERVICE_NAME, name, value)
+    except KeyringError as exc:
+        raise SecretStoreError(f"OS keyring backend unavailable: {exc}") from exc
 
 
 def delete_secret(name: str) -> None:
-    keyring.delete_password(SERVICE_NAME, name)
+    try:
+        keyring.delete_password(SERVICE_NAME, name)
+    except KeyringError as exc:
+        raise SecretStoreError(f"OS keyring backend unavailable: {exc}") from exc

@@ -55,9 +55,35 @@ session.
   injected fake client (`tests/test_ai.py`) plus a build-and-boot smoke
   test confirming the service wires up correctly with no key present.
 
+## Hardening Done After Real-Server Testing (2026-10-02)
+
+Running the actual service end-to-end (not just unit tests) surfaced a
+real bug: a keyring backend failure (no backend installed, or a locked
+vault) raised an uncaught `keyring.errors.KeyringError` straight through
+`AnthropicProvider`, past the `AIProviderError` handling in
+`service/app.py`, producing a raw HTTP 500 with a stack trace instead of
+the intended clean 502. Fixed by wrapping all `keyring` calls in
+`jarvis_core/secrets.py` and translating the failure into
+`AIProviderError` in `anthropic_provider.py`. Regression tests added
+(`tests/test_secrets.py`, plus new cases in `tests/test_ai.py` and
+`tests/test_service.py` using a real `AnthropicProvider` + real
+`AIRouter` through the actual FastAPI app, not just fakes). Full suite:
+40 passed.
+
+Also added, since there's no admin UI yet (Mission Control is Phase 11):
+- `scripts/grant_permission.py` — grant/revoke/list capabilities against
+  a running (or stopped) Core's permission store.
+- `scripts/test_ai_complete.py` — send one test prompt to a running
+  Core's `/ai/complete` and print the result.
+
+Both were smoke-tested against a real running `jarvis_core.service.main`
+instance in this session (confirmed `/health`, `/status`, and
+`/ai/complete`'s error path all behave correctly).
+
 ## Next Action
 
 Owner-supplied Anthropic API key (via the OS keyring, never a config file
-or env var) to validate a real end-to-end call, then: a second provider or
-broader router capability (model/task routing), or move toward a plugin
-that actually calls `/ai/complete` — whichever the owner prioritizes.
+or env var) to validate a real end-to-end call against the live API, then:
+a second provider or broader router capability (model/task routing), or
+move toward a plugin that actually calls `/ai/complete` — whichever the
+owner prioritizes.
