@@ -1,6 +1,31 @@
 # AI System & Provider Abstraction Specification
 
-Status: proposed
+Status: proposed (design), implemented (first increment — see below)
+
+## Phase 3 First Increment (implemented, 2026-10-02)
+
+`jarvis_core/ai/` implements:
+- `provider.py` — the `AIProvider` abstract base class (`AIResponse`,
+  `AIUsage`, `AIProviderError`).
+- `anthropic_provider.py` — `AnthropicProvider`, the first concrete
+  provider (D-0015). Lazily imports the `anthropic` SDK and reads its API
+  key from the OS keyring (D-0012, `jarvis_core/secrets.py`) on first use
+  only, so Core starts fine with no key configured.
+- `cost.py` — `CostTracker`, backed by the `ai_usage` SQLite table
+  (`storage/db.py`), tracking spend-to-date against the monthly ceiling.
+- `router.py` — `AIRouter`: one method, `complete(prompt)`. Enforces the
+  `AI_PROVIDER` permission gate, then the cost ceiling (D-0008/D-0016)
+  before calling the provider, then records real usage/cost and an audit
+  entry (metadata only — never prompt/response content) after.
+- Exposed via Core's local HTTP API: `POST /ai/complete` (`service/app.py`)
+  — 403 if the permission isn't granted, 402 if the cost ceiling would be
+  exceeded, 502 on a provider failure, 503 if no provider is configured.
+
+**Not yet implemented** (still `proposed`, tracked for later increments):
+intent analysis, task classification, model/tool selection beyond "one
+configured model," multiple concrete providers / real fallback between
+them, local models, context/prompt management, structured outputs, model
+comparison. See `project_state.json` for current status.
 
 ## AI System Responsibilities
 

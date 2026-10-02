@@ -303,3 +303,64 @@ changed; 4 new regression tests added (`tests/test_permissions.py`,
 `tests/test_config.py`) covering both the fix and the original hole.
 See `phase_completion_records/P001-completion.md` for the full review
 record.
+
+---
+
+### D-0015: First AI provider to wire up — Anthropic
+Status: decided
+Date: 2026-10-02
+Context: `current_phase.md` / `ai_provider_spec.md` left "which specific
+cloud provider(s) to wire up first" as an explicit owner-only open question
+blocking Phase 3 implementation. D-0007 already requires the `AIProvider`
+abstraction to support multiple providers and never hard-require one; this
+decision only picks which concrete subclass gets built and tested first.
+Decision: Implement `AnthropicProvider` first. Rationale: strong
+coding/reasoning/tool-use performance, which matters most given the task
+taxonomy in `ai_provider_spec.md` (coding, research, planning, automation,
+reasoning) and D-0006's hybrid split putting exactly those task categories
+on the cloud tier.
+Alternatives considered: OpenAI, Google, DeepSeek — all remain valid future
+`AIProvider` subclasses per D-0007 and are not rejected, only not first.
+Local-model-only — rejected for the brain tier per D-0005/D-0006 (owner's
+EliteBook 645 G9 has no dedicated GPU).
+Consequences: `jarvis_core/ai/anthropic_provider.py` is the first concrete
+`AIProvider`. Adding a second provider later is implementing another
+subclass of the same abstraction (`jarvis_core/ai/provider.py`), not a
+rearchitecture.
+
+### D-0016: Monthly AI cost ceiling and cost-estimation approach
+Status: decided
+Date: 2026-10-02
+Context: D-0008 requires the AI Router to be able to enforce a configured
+monthly cost ceiling so unattended/background use can never produce a
+surprise bill; `current_phase.md` left the actual number as an owner-only
+open question.
+Decision: Default monthly ceiling: **$20 USD**, configurable via
+`ai.monthly_cost_ceiling_usd` in config (file or
+`JARVIS_AI__MONTHLY_COST_CEILING_USD` env override) — not a hard-coded
+constant. Chosen as a conservative "the owner can afford to lose this
+entirely to a bug" figure appropriate for Phase 3's first-pass integration
+work, not for sustained heavy use; expected to be revisited once Jarvis is
+doing real recurring work. The router (`jarvis_core/ai/router.py`) checks
+a pre-call estimate against cumulative spend-this-month
+(`jarvis_core/ai/cost.py`, backed by a new `ai_usage` SQLite table) before
+every cloud-tier call, and records the real, usage-based cost after every
+call regardless of the pre-call estimate's accuracy.
+Cost-per-token figures (`ai.input_cost_per_1k_usd` /
+`ai.output_cost_per_1k_usd`, defaults $0.002 / $0.010 for Anthropic's
+Sonnet-tier pricing) are configured values, not values this codebase
+claims to verify against the provider's actual current billing — sourced
+from third-party pricing aggregators at the time of this decision, not
+Anthropic's own pricing page directly. **The owner should confirm current
+rates at anthropic.com/pricing and adjust config if they differ** before
+relying on the ceiling as an exact spending cap; the enforcement mechanism
+itself does not depend on the figures being exactly right, only on them
+being a reasonable estimate.
+Alternatives considered: No ceiling / unbounded spend — rejected outright,
+conflicts with D-0008. Hard-coding exact real-time billing lookups via a
+provider billing API — rejected as unnecessary complexity for Phase 3's
+first pass; token-based estimation is sufficient to catch runaway use.
+Consequences: `jarvis_core/ai/cost.py`, `storage/db.py` (`ai_usage`
+table), and `config/schema.py` (`AIConfig`) implement this. Revisiting the
+ceiling number or the pricing figures later is a config change, not a
+decision-log change, unless the estimation *approach* itself changes.

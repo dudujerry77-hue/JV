@@ -44,6 +44,27 @@ class PluginsConfig(BaseModel):
     directory: str = "plugins"
 
 
+class AIConfig(BaseModel):
+    # First provider per .jarvis/decisions.md D-0015. Never a secret: the
+    # API key itself is never here -- it comes from the OS keyring
+    # (D-0012) via jarvis_core/secrets.py.
+    provider: str = "anthropic"
+    model: str = "claude-sonnet-5-5"
+
+    # D-0008 / D-0016: enforced by jarvis_core/ai/router.py + cost.py, not
+    # merely advisory. $20/mo is a conservative Phase-3-first-pass default,
+    # not a permanent figure -- override via config file or
+    # JARVIS_AI__MONTHLY_COST_CEILING_USD.
+    monthly_cost_ceiling_usd: float = 20.0
+
+    # Approximate per-1k-token pricing used only to estimate spend against
+    # the ceiling above -- not a claim of exact provider billing. See
+    # D-0016: confirm current rates at the provider's own pricing page and
+    # adjust these if they differ.
+    input_cost_per_1k_usd: float = 0.002
+    output_cost_per_1k_usd: float = 0.010
+
+
 class JarvisConfig(BaseModel):
     # Base directory all relative paths above are resolved against. Never
     # holds secrets -- see .jarvis/decisions.md D-0012 (secrets go through
@@ -54,6 +75,7 @@ class JarvisConfig(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
+    ai: AIConfig = Field(default_factory=AIConfig)
 
     def resolved_data_dir(self) -> Path:
         return Path(self.data_dir).expanduser()

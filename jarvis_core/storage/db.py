@@ -1,8 +1,8 @@
 """SQLite storage layer -- see .jarvis/decisions.md D-0010.
 
-Phase 1 only needs two tables: permission grants and an audit log. Later
-phases add tables behind this same get_connection() entry point rather
-than each subsystem opening its own database file.
+Phase 1 added two tables: permission grants and an audit log. Phase 3 adds
+ai_usage (D-0016) behind this same get_connection() entry point rather than
+each subsystem opening its own database file.
 """
 
 import sqlite3
@@ -21,6 +21,16 @@ CREATE TABLE IF NOT EXISTS audit_log (
     timestamp TEXT NOT NULL,
     event_type TEXT NOT NULL,
     detail TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    estimated_cost_usd REAL NOT NULL
 );
 """
 

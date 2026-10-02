@@ -1,53 +1,63 @@
 # Current Phase
 
-Phase: **Phase 1 — Foundation**
-Status: `complete`
-Completed: 2026-10-02 — see `phase_completion_records/P001-completion.md`
-for the full completion record (implementation, tests, integration,
-documentation, security review, verification).
-
-## What Was Completed
-
-All of Phase 1's scope (package skeleton, config system, observability,
-permission system, plugin loader skeleton, core service, tests) plus the
-three items that were blocking completion as of the last update to this
-file: CI (D-0013), a security review (D-0014, two findings, both fixed —
-mandatory audit logging, enforced loopback-only service binding), and this
-completion record.
-
----
-
-# Next Phase
-
 Phase: **Phase 3 — Multi-AI Brain**
-Status: `proposed`, not yet started
+Status: `in_progress`
+Last updated: 2026-10-02
 
-Per `roadmap.md`'s "Notes" (phases are a planning sequence, not a strict
-waterfall), the owner chose to move to Phase 3 next rather than Phase 2
-(Voice), so Jarvis has a real capability (an AI provider) to exercise the
-Foundation layer against before building a voice interface on top of it.
-This reordering is recorded in `phase_completion_records/P001-completion.md`
-under "Next Phase".
+Phase 1 — Foundation is `complete` (see
+`phase_completion_records/P001-completion.md`). Per `roadmap.md`'s "Notes"
+(phases are a planning sequence, not a strict waterfall), the owner chose
+to move to Phase 3 next rather than Phase 2 (Voice), so Jarvis has a real
+capability to exercise the Foundation layer against before building a
+voice interface on top of it.
 
-## Blocking Open Questions (owner-only, per `agent_rules.md`)
+## Decided for This Phase
 
-Per `ai_provider_spec.md` and the Feature Development Protocol
-(`agent_rules.md`), implementation must not begin until these are decided
-— they are facts/preferences only the owner has, the same category as
-D-0003/D-0009's OS and stack questions:
+- First concrete AI provider: **Anthropic** (D-0015).
+- Monthly AI cost ceiling: **$20 USD**, configurable, enforced by the
+  router rather than advisory (D-0016).
+- Default model: `claude-sonnet-5-5`, configurable via `ai.model`.
 
-1. **Which AI provider(s) to wire up first.** D-0007 already requires the
-   abstraction to support multiple providers and never hard-require a
-   single one — this question is about which one(s) get built and tested
-   first, not the architecture.
-2. **Monthly cost ceiling.** D-0008 already requires cost exposure from
-   background/unattended work to be visible and bounded — this question is
-   what that bound actually is.
+## What Exists So Far (first increment, implemented 2026-10-02)
+
+`jarvis_core/ai/` — provider abstraction, `AnthropicProvider`, cost
+tracking against the configured ceiling, and `AIRouter.complete(prompt)`
+enforcing the `AI_PROVIDER` permission gate + ceiling + audit logging
+(metadata only, never prompt/response content). Exposed via
+`POST /ai/complete` on Core's local HTTP API. Credentials come from the
+OS keyring (D-0012), looked up lazily — Core starts fine with no API key
+configured; the endpoint simply isn't usable until one is set. See
+`ai_provider_spec.md`'s "Phase 3 First Increment" section for the full
+list of what this does and does not cover yet.
+
+12 new tests added (`tests/test_ai.py`, plus new cases in
+`tests/test_service.py`); full suite verified passing, 36/36, this
+session.
+
+## Explicitly Not Yet Done (this phase is not complete)
+
+- Intent analysis, task classification, and real model/tool selection —
+  the router currently always uses the one configured model.
+- A second concrete provider / real fallback between providers (D-0007's
+  abstraction supports this; nothing beyond Anthropic has been built).
+- Local models (D-0006's local tier — wake word, STT, embeddings — is
+  Phase 2/5 territory, not this increment).
+- A formal security review of this increment specifically (Phase 1's
+  review in `phase_completion_records/P001-completion.md` predates this
+  code).
+- A `phase_completion_records/P003-completion.md` — not created yet;
+  `roadmap.md`'s completion bar (Implementation + Tests + Integration +
+  Documentation + Security review + Verification) is not fully met until
+  the above are addressed.
+- No real end-to-end call to the Anthropic API has been made in this
+  environment (no API key configured here, and none should be added to
+  this repo or committed) — verification so far is unit-level with an
+  injected fake client (`tests/test_ai.py`) plus a build-and-boot smoke
+  test confirming the service wires up correctly with no key present.
 
 ## Next Action
 
-Once the owner answers the two questions above: specification →
-architecture-impact analysis → security/privacy analysis (credentials
-through the D-0012 keyring layer, never config/logs) → decision record in
-`decisions.md` → implementation plan, per `agent_rules.md`'s Feature
-Development Protocol. Do not skip straight to implementation.
+Owner-supplied Anthropic API key (via the OS keyring, never a config file
+or env var) to validate a real end-to-end call, then: a second provider or
+broader router capability (model/task routing), or move toward a plugin
+that actually calls `/ai/complete` — whichever the owner prioritizes.
