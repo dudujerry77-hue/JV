@@ -1,7 +1,10 @@
 import os
 
+import pytest
+from pydantic import ValidationError
+
 from jarvis_core.config.loader import load_config
-from jarvis_core.config.schema import JarvisConfig
+from jarvis_core.config.schema import JarvisConfig, ServiceConfig
 
 
 def test_defaults_when_no_file_or_env(tmp_path, monkeypatch):
@@ -42,3 +45,24 @@ def test_resolved_paths_are_under_data_dir(tmp_path):
     assert config.resolved_db_path() == tmp_path / "jarvis.db"
     assert config.resolved_log_file() == tmp_path / "logs" / "jarvis.log"
     assert config.resolved_plugins_dir() == tmp_path / "plugins"
+
+
+def test_service_host_rejects_non_loopback():
+    """D-0011: Core's API must never bind a public interface."""
+    with pytest.raises(ValidationError):
+        ServiceConfig(host="0.0.0.0")
+
+
+def test_service_host_rejects_non_loopback_from_yaml_file(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("service:\n  host: 0.0.0.0\n")
+
+    with pytest.raises(ValidationError):
+        load_config(config_file)
+
+
+def test_service_host_rejects_non_loopback_from_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("JARVIS_SERVICE__HOST", "0.0.0.0")
+
+    with pytest.raises(ValidationError):
+        load_config()

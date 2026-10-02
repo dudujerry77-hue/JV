@@ -1,58 +1,55 @@
 {
   "project": "Jarvis",
   "governance_version": "0.1.0",
-  "last_updated": "2026-08-13",
-  "current_phase": "Phase 1 - Foundation",
-  "phase_status": "in_progress",
+  "last_updated": "2026-10-02",
+  "current_phase": "Phase 3 - Multi-AI Brain",
+  "phase_status": "proposed",
   "architecture_version": "0.1-draft",
   "repository_state": {
     "application_code_exists": true,
     "technology_stack_decided": true,
-    "notes": "Phase 1 Foundation scaffolding implemented under jarvis_core/: config, observability, permissions, plugin loader, storage, core service. 20 automated tests exist and pass (pytest). Not yet CI-wired, not yet security-reviewed as a phase, no first-party plugins ship yet."
+    "notes": "Phase 1 Foundation is complete (see .jarvis/phase_completion_records/P001-completion.md): config, observability, permissions, plugin loader, storage, core service, all under jarvis_core/. 24 automated tests exist and pass (pytest), CI now runs them automatically on every push/PR (.github/workflows/ci.yml, D-0013). Security review performed; two findings fixed (D-0014): permission checks now always write an audit row, and the service's loopback-only binding (D-0011) is enforced at the config layer, not just defaulted. No first-party plugins ship yet."
   },
   "implemented_features": [
-    "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic (jarvis_core/config)",
+    "Layered config system (defaults -> YAML file -> env overrides), validated via Pydantic, with enforced loopback-only service.host (jarvis_core/config)",
     "Structured logging to console + rotating file (jarvis_core/observability)",
     "SQLite storage layer with permission_grants and audit_log tables (jarvis_core/storage)",
-    "Capability-based permission system: deny-by-default store, tier classification, require() enforcement gate with audit logging (jarvis_core/permissions)",
+    "Capability-based permission system: deny-by-default store, tier classification, require() enforcement gate with mandatory (non-optional) audit logging (jarvis_core/permissions)",
     "Plugin manifest schema + directory-based discovery with per-plugin failure isolation (jarvis_core/plugins)",
-    "Core HTTP service (FastAPI/Uvicorn, loopback-only) with /health and /status endpoints (jarvis_core/service)"
+    "Core HTTP service (FastAPI/Uvicorn, loopback-only, enforced) with /health and /status endpoints (jarvis_core/service)",
+    "CI pipeline running pytest on every push/PR (.github/workflows/ci.yml)"
   ],
   "verified_features": [
-    "Config system: 4 automated tests passing (defaults, file override, env override, path resolution)",
-    "Permission system: 8 automated tests passing (deny-by-default, grant/revoke, full-catalog seeding, tier mapping, require() allow/deny paths, audit-log write)",
+    "Config system: 7 automated tests passing (defaults, file override, env override, path resolution, loopback-host enforcement via direct construction/file/env)",
+    "Permission system: 10 automated tests passing (deny-by-default, grant/revoke, full-catalog seeding, tier mapping, require() allow/deny paths, audit-log write on both granted and denied checks)",
     "Plugin discovery/registry: 6 automated tests passing (empty dir, missing dir, valid manifest, invalid manifest isolation, no-manifest dir skipped, registry register/get/list)",
-    "Core service: 2 automated tests passing (in-process /health and /status), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file"
+    "Core service: 2 automated tests passing (in-process /health and /status), plus one manual real-socket smoke test confirming the service boots, serves real HTTP, and persists a real SQLite file",
+    "Phase 1 completion bar (Implementation + Tests + Integration + Documentation + Security review + Verification) met -- see phase_completion_records/P001-completion.md"
   ],
   "blocked_features": [],
-  "active_tasks": [],
+  "active_tasks": [
+    "Phase 3: decide and wire up a first real AI provider integration per ai_provider_spec.md (provider choice and monthly cost ceiling still open, deferred from Phase 1's current_phase.md)"
+  ],
   "latest_decisions": [
-    "D-0001",
-    "D-0002",
-    "D-0003",
-    "D-0004",
-    "D-0005",
-    "D-0006",
-    "D-0007",
-    "D-0008",
     "D-0009",
     "D-0010",
     "D-0011",
-    "D-0012"
+    "D-0012",
+    "D-0013",
+    "D-0014"
   ],
   "known_risks": [
     "Primary device (HP EliteBook 645 G9) has no dedicated GPU, so the local-tier/cloud-tier split (D-0006) is a hard constraint on later phases, not a preference.",
-    "No CI pipeline exists yet -- tests must be run manually (`pytest`) before each commit until CI is wired up.",
-    "No formal security review has been performed on this Foundation pass -- required before Phase 1 can be marked complete per roadmap.md's completion bar.",
     "No first-party plugins exist yet, so plugin isolation has only been tested against synthetic fixtures, not a real plugin.",
-    "Android integration approach and specific cloud AI provider(s)/cost ceiling remain open, deferred to Phase 7 and Phase 3 respectively -- not blocking for Phase 1."
+    "Credential storage (D-0012, OS keyring) has no exercised code path yet -- it will be exercised for the first time by Phase 3's AI provider API keys, so that integration should include tests proving keys are never written to config files or logs.",
+    "Android integration approach remains open, deferred to Phase 7 -- not blocking for Phase 3.",
+    "Specific cloud AI provider(s) to wire up first, and a monthly cost ceiling, remain open -- blocking for starting Phase 3 implementation; needs an owner decision before architecture work begins."
   ],
   "next_actions": [
-    "Owner review of this Foundation pass.",
-    "Wire up CI to run pytest automatically on push.",
-    "Perform and record a security review of the permission/plugin/service layers before declaring Phase 1 complete.",
-    "Write phase_completion_records/P001-completion.md only once the full completion bar in roadmap.md is met (a partial pass, however solid, is not 'complete').",
-    "Decide what real capability Phase 1 should be exercised against next (e.g. a first trivial plugin, or moving into Phase 3 AI provider wiring)."
+    "Owner decision: which AI provider(s) to wire up first for Phase 3, and a monthly cost ceiling (D-0007/D-0008 already set the multi-provider and no-cost-to-idle requirements this must satisfy).",
+    "Phase 3: specification + architecture-impact analysis for the AI provider abstraction, per agent_rules.md's Feature Development Protocol, before implementation begins.",
+    "Phase 3: route provider API keys through the D-0012 keyring layer from day one, with a test proving they never land in config files, logs, or the audit log's detail strings.",
+    "Separately, and not blocking Phase 3: a first trivial first-party plugin would give the Phase 1 plugin loader real (not just synthetic) exercise -- worth considering opportunistically."
   ],
   "last_verified_commit": null
 }

@@ -240,3 +240,66 @@ Alternatives considered: Plaintext `.env` file — rejected outright, fails
 reinventing what the OS credential store already does safely.
 Consequences: Any config field that is a secret must be resolved through
 the credential-storage layer, never read directly from a config file.
+
+---
+
+### D-0013: CI pipeline — GitHub Actions running pytest
+Status: decided
+Date: 2026-10-02
+Context: `project_state.json`'s `known_risks` and `next_actions` flagged the
+absence of CI as a gap blocking Phase 1 completion (`roadmap.md`'s
+completion bar requires "Integration" + "Verification", and tests were
+previously only run manually before each commit).
+Decision: Add `.github/workflows/ci.yml` running `pytest -v` against Python
+3.11 on every push and pull request targeting `main`. No lint/type-check
+step yet -- scoped to the thing `known_risks` actually flagged (tests
+running automatically); linting can be added later without this being
+treated as an undocumented shortcut, since it's explicitly out of scope
+here, not silently skipped.
+Alternatives considered: Other CI providers (CircleCI, etc.) -- rejected,
+no reason to leave GitHub Actions given the repo already lives on GitHub.
+Consequences: `testing_strategy.md` updated to point at the workflow file
+instead of describing CI as unwired. Removes one of the three blockers
+`current_phase.md` listed for declaring Phase 1 complete.
+
+### D-0014: Phase 1 security review findings and fixes
+Status: decided
+Date: 2026-10-02
+Context: `roadmap.md`'s completion bar requires a security review before a
+phase can be marked complete; none had been performed on the Foundation
+pass. Reviewed `jarvis_core/permissions`, `jarvis_core/plugins`,
+`jarvis_core/config`, and `jarvis_core/service` against
+`security_policy.md` and `permissions_model.md`.
+Decision: Two gaps were found and fixed, not merely logged for later:
+1. **Audit logging was opt-in, not guaranteed.** `checker.require()` took
+   an optional `conn` parameter and silently skipped writing to
+   `audit_log` when a caller omitted it -- directly conflicting with
+   `permissions_model.md` "Auditability" ("every grant, denial, and
+   sensitive-capability use must be logged"). Fixed by moving audit
+   writing onto `PermissionStore.record_audit()`, using the store's own
+   connection, so `require()` can no longer be called without an audit
+   row being written.
+2. **Loopback binding (D-0011) was a default, not an enforced
+   constraint.** `ServiceConfig.host` could be overridden to `0.0.0.0` (or
+   any other interface) via a YAML config file or a `JARVIS_SERVICE__HOST`
+   env var, with nothing stopping it despite the comment saying "never
+   bind a public interface here." Fixed with a Pydantic field validator
+   restricting `service.host` to `{127.0.0.1, localhost, ::1}`, enforced
+   at every config layer (defaults, file, env).
+No other findings: manifest/YAML parsing uses `yaml.safe_load` (no
+arbitrary code execution), all SQL is parameterized (no injection surface),
+plugin discovery isolates per-plugin failures without raising, and
+secrets have no code path yet since no first-party plugin or AI provider
+integration exists to need one (D-0012's keyring layer remains
+unexercised until one does -- tracked as a known limitation, not a gap,
+since there is nothing to protect yet).
+Alternatives considered: Documenting the audit/host gaps as known risks
+without fixing them -- rejected; both were small, local, in-module fixes
+with no architectural impact, so fixing directly was more honest than
+deferring issues `security_policy.md` already requires Phase 1 to close.
+Consequences: `jarvis_core/permissions/checker.py`,
+`jarvis_core/permissions/store.py`, and `jarvis_core/config/schema.py`
+changed; 4 new regression tests added (`tests/test_permissions.py`,
+`tests/test_config.py`) covering both the fix and the original hole.
+See `phase_completion_records/P001-completion.md` for the full review
+record.

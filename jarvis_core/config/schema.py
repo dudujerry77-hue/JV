@@ -7,14 +7,28 @@ Rule: update the spec/schema, don't bolt on ad hoc config reads elsewhere).
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# Loopback-only per .jarvis/decisions.md D-0011 -- never bind a public
+# interface. Enforced, not just the default, since a config file or
+# JARVIS_SERVICE__HOST env override could otherwise silently widen Core's
+# API past localhost (.jarvis/security_policy.md "Network security").
+_ALLOWED_SERVICE_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
 class ServiceConfig(BaseModel):
-    # Loopback-only per .jarvis/decisions.md D-0011 -- never bind a public
-    # interface here.
     host: str = "127.0.0.1"
     port: int = 8756
+
+    @field_validator("host")
+    @classmethod
+    def _host_must_be_loopback(cls, value: str) -> str:
+        if value not in _ALLOWED_SERVICE_HOSTS:
+            raise ValueError(
+                f"service.host must be loopback ({sorted(_ALLOWED_SERVICE_HOSTS)}), "
+                f"got {value!r} -- see .jarvis/decisions.md D-0011"
+            )
+        return value
 
 
 class LoggingConfig(BaseModel):

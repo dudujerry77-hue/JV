@@ -51,9 +51,9 @@ passed, per `agent_rules.md` §"Agent Handoff Protocol".
   (valid manifest, invalid manifest isolation, missing manifest, registry
   behavior), and the core service's `/health` and `/status` endpoints —
   both via the in-process `TestClient` and one real-socket smoke test.
-- **CI pipeline**: not yet wired up (no CI config exists in the repo yet).
-  Tracked as Phase 1 follow-up, not a Foundation blocker — `pytest` must
-  be run manually before each commit until CI exists.
+- **CI pipeline**: `.github/workflows/ci.yml` runs `pytest -v` on every push
+  and pull request against `main` (Python 3.11, `pip install -e ".[dev]"`).
+  See `decisions.md` D-0013.
 - **Coverage thresholds**: no numeric threshold enforced yet. The concrete
   rule for now is `coding_standards.md`'s "every module has at least one
   test module, security-relevant code covers both allow and deny paths."

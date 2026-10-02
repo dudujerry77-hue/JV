@@ -43,9 +43,18 @@ def test_require_passes_when_granted(permission_store):
 
 def test_require_writes_audit_log_entry(permission_store, db_conn):
     permission_store.grant(Capability.NETWORK)
-    require(permission_store, Capability.NETWORK, conn=db_conn)
+    require(permission_store, Capability.NETWORK)
 
     rows = db_conn.execute("SELECT * FROM audit_log").fetchall()
     assert len(rows) == 1
     assert rows[0]["event_type"] == "permission_check"
     assert "NETWORK" in rows[0]["detail"]
+
+
+def test_require_audits_denied_checks_too(permission_store, db_conn):
+    with pytest.raises(PermissionDenied):
+        require(permission_store, Capability.RUN_COMMAND)
+
+    rows = db_conn.execute("SELECT * FROM audit_log").fetchall()
+    assert len(rows) == 1
+    assert "granted=False" in rows[0]["detail"]

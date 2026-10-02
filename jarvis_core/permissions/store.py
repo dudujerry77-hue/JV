@@ -59,3 +59,18 @@ class PermissionStore:
             "SELECT capability, granted, tier, updated_at FROM permission_grants"
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def record_audit(self, event_type: str, detail: str) -> None:
+        """Write one durable audit_log row through this store's own connection.
+
+        Kept on the store (not left to callers to pass a connection in) so
+        that auditing a permission check can never be accidentally skipped
+        -- see .jarvis/permissions_model.md "Auditability": every grant,
+        denial, and sensitive-capability use must be logged.
+        """
+        now = datetime.now(UTC).isoformat()
+        self._conn.execute(
+            "INSERT INTO audit_log (timestamp, event_type, detail) VALUES (?, ?, ?)",
+            (now, event_type, detail),
+        )
+        self._conn.commit()
