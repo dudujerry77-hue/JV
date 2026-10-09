@@ -17,6 +17,9 @@ dev = [
     "httpx>=0.27",
 ]
 
+[project.scripts]
+jarvis-settings = "jarvis_ui.settings_window:main"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -25,4 +28,4 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["jarvis_core*"]
+include = ["jarvis_core*", "jarvis_ui*"]
